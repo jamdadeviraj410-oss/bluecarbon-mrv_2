@@ -1,0 +1,244 @@
+@import "tailwindcss";
+
+/* ============================================
+   Marine Ledger Design System
+   BlueCarbon MRV Registry
+   ============================================ */
+
+@theme {
+  /* === Colors: Marine Ledger Tonal Palette === */
+  --color-primary: #001e40;
+  --color-primary-container: #003366;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #799dd6;
+  --color-primary-fixed: #d5e3ff;
+  --color-primary-fixed-dim: #a7c8ff;
+  --color-inverse-primary: #a7c8ff;
+
+  --color-secondary: #1b6d24;
+  --color-secondary-container: #a0f399;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-container: #217128;
+  --color-secondary-fixed: #a3f69c;
+  --color-secondary-fixed-dim: #88d982;
+
+  --color-tertiary: #002228;
+  --color-tertiary-container: #003941;
+  --color-on-tertiary: #ffffff;
+  --color-on-tertiary-container: #00abc1;
+  --color-tertiary-fixed: #a1efff;
+  --color-tertiary-fixed-dim: #44d8f1;
+
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error: #ffffff;
+  --color-on-error-container: #93000a;
+
+  --color-surface: #f8f9ff;
+  --color-surface-dim: #cbdbf5;
+  --color-surface-bright: #f8f9ff;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #eff4ff;
+  --color-surface-container: #e5eeff;
+  --color-surface-container-high: #dce9ff;
+  --color-surface-container-highest: #d3e4fe;
+  --color-surface-tint: #3a5f94;
+  --color-surface-variant: #d3e4fe;
+
+  --color-on-surface: #0b1c30;
+  --color-on-surface-variant: #43474f;
+  --color-inverse-surface: #213145;
+  --color-inverse-on-surface: #eaf1ff;
+
+  --color-outline: #737780;
+  --color-outline-variant: #c3c6d1;
+
+  --color-background: #f8f9ff;
+  --color-on-background: #0b1c30;
+
+  /* === Semantic Status Colors === */
+  --color-status-verified-bg: #e8f5e9;
+  --color-status-verified: #2e7d32;
+  --color-status-pending-bg: #fff3e0;
+  --color-status-pending: #f57f17;
+  --color-status-rejected-bg: #ffdad6;
+  --color-status-rejected: #d32f2f;
+  --color-status-review-bg: #fff8e1;
+  --color-status-review: #f57f17;
+  --color-status-draft-bg: #f3e5f5;
+  --color-status-draft: #7b1fa2;
+
+  /* === Spacing === */
+  --spacing-base: 4px;
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-container-margin: 40px;
+  --spacing-gutter: 20px;
+
+  /* === Border Radius === */
+  --radius-sm: 0.25rem;
+  --radius-DEFAULT: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-full: 9999px;
+
+  /* === Typography === */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "Fira Code", Consolas, monospace;
+
+  --text-display-lg: 48px;
+  --text-display-lg--line-height: 56px;
+  --text-display-lg--letter-spacing: -0.02em;
+  --text-display-lg--font-weight: 700;
+
+  --text-headline-lg: 32px;
+  --text-headline-lg--line-height: 40px;
+  --text-headline-lg--letter-spacing: -0.01em;
+  --text-headline-lg--font-weight: 600;
+
+  --text-headline-md: 24px;
+  --text-headline-md--line-height: 32px;
+  --text-headline-md--font-weight: 600;
+
+  --text-title-lg: 20px;
+  --text-title-lg--line-height: 28px;
+  --text-title-lg--font-weight: 600;
+
+  --text-title-md: 16px;
+  --text-title-md--line-height: 24px;
+  --text-title-md--font-weight: 600;
+
+  --text-body-lg: 16px;
+  --text-body-lg--line-height: 26px;
+  --text-body-lg--font-weight: 400;
+
+  --text-body-md: 14px;
+  --text-body-md--line-height: 20px;
+  --text-body-md--font-weight: 400;
+
+  --text-label-md: 12px;
+  --text-label-md--line-height: 16px;
+  --text-label-md--letter-spacing: 0.05em;
+  --text-label-md--font-weight: 600;
+
+  --text-mono-data: 13px;
+  --text-mono-data--line-height: 18px;
+  --text-mono-data--font-weight: 400;
+
+  /* === Sidebar Width === */
+  --sidebar-width: 288px;
+  --topbar-height: 64px;
+}
+
+/* === Base Styles === */
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  color: var(--color-on-background);
+  background-color: var(--color-background);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior: none;
+}
+
+/* === Scrollbar Styling === */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-outline-variant);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-outline);
+}
+
+/* === Typography Utility Classes === */
+.text-display-lg {
+  font-size: var(--text-display-lg);
+  line-height: var(--text-display-lg--line-height);
+  letter-spacing: var(--text-display-lg--letter-spacing);
+  font-weight: var(--text-display-lg--font-weight);
+}
+
+.text-headline-lg {
+  font-size: var(--text-headline-lg);
+  line-height: var(--text-headline-lg--line-height);
+  letter-spacing: var(--text-headline-lg--letter-spacing);
+  font-weight: var(--text-headline-lg--font-weight);
+}
+
+.text-headline-md {
+  font-size: var(--text-headline-md);
+  line-height: var(--text-headline-md--line-height);
+  font-weight: var(--text-headline-md--font-weight);
+}
+
+.text-title-lg {
+  font-size: var(--text-title-lg);
+  line-height: var(--text-title-lg--line-height);
+  font-weight: var(--text-title-lg--font-weight);
+}
+
+.text-title-md {
+  font-size: var(--text-title-md);
+  line-height: var(--text-title-md--line-height);
+  font-weight: var(--text-title-md--font-weight);
+}
+
+.text-body-lg {
+  font-size: var(--text-body-lg);
+  line-height: var(--text-body-lg--line-height);
+  font-weight: var(--text-body-lg--font-weight);
+}
+
+.text-body-md {
+  font-size: var(--text-body-md);
+  line-height: var(--text-body-md--line-height);
+  font-weight: var(--text-body-md--font-weight);
+}
+
+.text-label-md {
+  font-size: var(--text-label-md);
+  line-height: var(--text-label-md--line-height);
+  letter-spacing: var(--text-label-md--letter-spacing);
+  font-weight: var(--text-label-md--font-weight);
+}
+
+.text-mono-data {
+  font-family: var(--font-mono);
+  font-size: var(--text-mono-data);
+  line-height: var(--text-mono-data--line-height);
+  font-weight: var(--text-mono-data--font-weight);
+}
+
+/* === Material Symbols Config === */
+.material-symbols-outlined {
+  font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24;
+  font-size: 24px;
+  line-height: 1;
+  vertical-align: middle;
+}

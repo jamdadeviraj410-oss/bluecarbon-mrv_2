@@ -1,0 +1,349 @@
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{"colors":{"surface-container-high":"#dce9ff","on-tertiary":"#ffffff","inverse-surface":"#213145","on-tertiary-fixed":"#001f25","background":"#f8f9ff","on-error":"#ffffff","tertiary":"#002228","surface-container-low":"#eff4ff","secondary":"#1b6d24","secondary-fixed-dim":"#88d982","on-primary-container":"#799dd6","on-tertiary-container":"#00abc1","on-secondary":"#ffffff","primary-fixed-dim":"#a7c8ff","on-secondary-container":"#217128","on-primary":"#ffffff","on-background":"#0b1c30","surface-container-lowest":"#ffffff","on-error-container":"#93000a","on-surface-variant":"#43474f","on-secondary-fixed":"#002204","on-primary-fixed":"#001b3c","secondary-fixed":"#a3f69c","tertiary-container":"#003941","secondary-container":"#a0f399","error":"#ba1a1a","surface-container":"#e5eeff","surface-bright":"#f8f9ff","inverse-primary":"#a7c8ff","surface-container-highest":"#d3e4fe","surface-tint":"#3a5f94","surface-variant":"#d3e4fe","primary-fixed":"#d5e3ff","tertiary-fixed-dim":"#44d8f1","error-container":"#ffdad6","primary":"#001e40","outline-variant":"#c3c6d1","surface":"#f8f9ff","surface-dim":"#cbdbf5","primary-container":"#003366","tertiary-fixed":"#a1efff","on-surface":"#0b1c30","on-tertiary-fixed-variant":"#004e59","on-secondary-fixed-variant":"#005312","inverse-on-surface":"#eaf1ff","on-primary-fixed-variant":"#1f477b","outline":"#737780"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"container-margin":"40px","sm":"8px","base":"4px","md":"16px","gutter":"20px","xl":"32px","lg":"24px","xs":"4px"},"fontFamily":{"mono-data":["monospace"],"label-md":["Inter"],"display-lg":["Inter"],"title-md":["Inter"],"body-lg":["Inter"],"headline-md":["Inter"],"title-lg":["Inter"],"body-md":["Inter"],"headline-lg":["Inter"]},"fontSize":{"mono-data":["13px",{"lineHeight":"18px","fontWeight":"400"}],"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.05em","fontWeight":"600"}],"display-lg":["48px",{"lineHeight":"56px","letterSpacing":"-0.02em","fontWeight":"700"}],"title-md":["16px",{"lineHeight":"24px","fontWeight":"600"}],"body-lg":["16px",{"lineHeight":"26px","fontWeight":"400"}],"headline-md":["24px",{"lineHeight":"32px","fontWeight":"600"}],"title-lg":["20px",{"lineHeight":"28px","fontWeight":"600"}],"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}],"headline-lg":["32px",{"lineHeight":"40px","letterSpacing":"-0.01em","fontWeight":"600"}]}}}}</script><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet"/></head><body class="bg-background font-body-md text-on-background"><aside class="fixed left-0 top-0 h-full w-72 bg-primary z-50 flex flex-col overflow-y-auto"><div class="p-lg mb-md flex items-center gap-sm"><img alt="Marine Ledger Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEo3Gg8VSa2wpzaewMkfwzDzp-AEpgVkEVdxGxWfXYJTsADpeeOuPEXzYYIng9wPdh4crpMbHbGVaT-QXOhmXcInghXDqCOetdYF0R92t5DUGflY1KFuYfuvTXIRIqL_trDLDdRorNkruqGtdLNfV9DT4obyduIowa451RJJr44VJm6UwUc1B_MbApDtEyG5zyya1s1H0v15FQI_uJ6YNayWyTdcbPh8a4kN-_nT02PlNQbjy_f7245g"/><span class="font-title-lg text-on-primary">Marine Ledger</span></div><nav class="flex-1 flex flex-col gap-xs px-md" data-active-classes="bg-primary-container text-on-primary-container font-semibold"><a class="flex items-center gap-md px-md py-sm rounded-lg text-on-primary/70 hover:bg-primary-container hover:text-on-primary transition-all" data-path="dashboard" href="#"><span class="material-symbols-outlined">dashboard</span>Dashboard</a><a class="flex items-center gap-md px-md py-sm rounded-lg text-on-primary/70 hover:bg-primary-container hover:text-on-primary transition-all" data-path="projects" href="#"><span class="material-symbols-outlined">nature</span>Projects</a><a class="flex items-center gap-md px-md py-sm rounded-lg text-on-primary/70 hover:bg-primary-container hover:text-on-primary transition-all" data-path="mrv-verification" href="#"><span class="material-symbols-outlined">verified</span>MRV Verification</a><a aria-current="page" class="flex items-center gap-md px-md py-sm rounded-lg transition-all bg-primary-container text-on-primary-container font-semibold" data-path="evidence-upload" href="#"><span class="material-symbols-outlined">upload_file</span>Evidence Upload</a><a class="flex items-center gap-md px-md py-sm rounded-lg text-on-primary/70 hover:bg-primary-container hover:text-on-primary transition-all" data-path="organizations" href="#"><span class="material-symbols-outlined">corporate_fare</span>Organizations</a><a class="flex items-center gap-md px-md py-sm rounded-lg text-on-primary/70 hover:bg-primary-container hover:text-on-primary transition-all" data-path="carbon-credits" href="#"><span class="material-symbols-outlined">eco</span>Carbon Credits</a><a class="flex items-center gap-md px-md py-sm rounded-lg text-on-primary/70 hover:bg-primary-container hover:text-on-primary transition-all" data-path="blockchain-registry" href="#"><span class="material-symbols-outlined">account_balance_wallet</span>Blockchain Registry</a><a class="flex items-center gap-md px-md py-sm rounded-lg text-on-primary/70 hover:bg-primary-container hover:text-on-primary transition-all" data-path="drone-sensor-data" href="#"><span class="material-symbols-outlined">sensors</span>Drone & Sensor Data</a><a class="flex items-center gap-md px-md py-sm rounded-lg text-on-primary/70 hover:bg-primary-container hover:text-on-primary transition-all" data-path="reports" href="#"><span class="material-symbols-outlined">description</span>Reports</a><a class="flex items-center gap-md px-md py-sm rounded-lg text-on-primary/70 hover:bg-primary-container hover:text-on-primary transition-all" data-path="audit-trail" href="#"><span class="material-symbols-outlined">history_edu</span>Audit Trail</a><a class="flex items-center gap-md px-md py-sm rounded-lg text-on-primary/70 hover:bg-primary-container hover:text-on-primary transition-all" data-path="settings" href="#"><span class="material-symbols-outlined">settings</span>Settings</a></nav></aside><div class="pl-72"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)] z-40 flex items-center justify-between px-xl"><div class="flex items-center gap-lg"><div class="flex items-center gap-sm bg-surface-container-low px-md py-sm rounded-lg border border-outline-variant cursor-pointer hover:bg-surface-container transition-colors"><span class="material-symbols-outlined text-primary text-[20px]">account_tree</span><div class="flex flex-col"><span class="font-label-md text-on-surface-variant leading-none">PROJECT</span><span class="font-title-md text-on-surface leading-none">Red Sea Mangrove Initiative</span></div><span class="material-symbols-outlined text-on-surface-variant">arrow_drop_down</span></div><div class="hidden md:flex items-center flex-1 max-w-sm bg-surface-container-low rounded-full px-md py-xs ml-lg"><span class="material-symbols-outlined text-outline text-[18px]">search</span><input class="bg-transparent border-none outline-none ml-sm w-full text-body-md text-on-surface" placeholder="Search registry..." type="text"/></div></div><div class="flex items-center gap-lg"><button class="relative p-base hover:bg-surface-container rounded-full transition-colors"><span class="material-symbols-outlined text-on-surface-variant">notifications</span><span class="absolute top-1 right-1 w-2 h-2 bg-error rounded-full"></span></button><div class="flex items-center gap-md pl-md border-l border-outline-variant"><div class="text-right hidden sm:block"><div class="font-title-md text-on-surface">Admin User</div><div class="font-label-md text-on-surface-variant uppercase">Registrar Office</div></div><div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[20px]">person</span></div></div></div></header><main class="relative pt-16 bg-background min-h-screen"><div class="flex flex-col w-full h-full relative" x-data="{ sidePanelOpen: false, selectedOrg: null, filterType: 'All', filterStatus: 'All' }">
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-md mb-xl px-xl">
+<div class="flex flex-col gap-xs">
+<h1 class="font-headline-lg text-on-background m-0 p-0">Registered Organizations</h1>
+<p class="font-body-lg text-on-surface-variant m-0 p-0 max-w-2xl">Manage NGOs, coastal communities, panchayats and restoration partners.</p>
+</div>
+<div class="flex items-center gap-md">
+<button class="flex items-center gap-sm bg-primary text-on-primary px-lg py-sm rounded-lg font-title-md hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-md">
+<span class="material-symbols-outlined text-[20px]">add_business</span>
+        Register Organization
+      </button>
+</div>
+</div>
+<!-- KPI Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-md mb-xl px-xl">
+<!-- Total Orgs -->
+<div class="bg-surface-container rounded-xl p-md flex flex-col gap-sm shadow-sm relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-full h-[3px] bg-primary"></div>
+<div class="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform duration-500">
+<span class="material-symbols-outlined text-[80px]">corporate_fare</span>
+</div>
+<span class="font-label-md text-on-surface-variant uppercase tracking-wider">Total Organizations</span>
+<div class="flex items-baseline gap-sm">
+<span class="font-display-lg text-primary">142</span>
+</div>
+</div>
+<!-- NGOs -->
+<div class="bg-surface-container rounded-xl p-md flex flex-col gap-sm shadow-sm relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-full h-[3px] bg-tertiary"></div>
+<div class="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform duration-500">
+<span class="material-symbols-outlined text-[80px]">volunteer_activism</span>
+</div>
+<span class="font-label-md text-on-surface-variant uppercase tracking-wider">NGOs</span>
+<div class="flex items-baseline gap-sm">
+<span class="font-display-lg text-tertiary">68</span>
+</div>
+</div>
+<!-- Panchayats -->
+<div class="bg-surface-container rounded-xl p-md flex flex-col gap-sm shadow-sm relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-full h-[3px] bg-secondary"></div>
+<div class="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform duration-500">
+<span class="material-symbols-outlined text-[80px]">assured_workload</span>
+</div>
+<span class="font-label-md text-on-surface-variant uppercase tracking-wider">Panchayats</span>
+<div class="flex items-baseline gap-sm">
+<span class="font-display-lg text-secondary">45</span>
+</div>
+</div>
+<!-- Coastal Communities -->
+<div class="bg-surface-container rounded-xl p-md flex flex-col gap-sm shadow-sm relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-full h-[3px] bg-on-tertiary-container"></div>
+<div class="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform duration-500">
+<span class="material-symbols-outlined text-[80px]">groups</span>
+</div>
+<span class="font-label-md text-on-surface-variant uppercase tracking-wider">Communities</span>
+<div class="flex items-baseline gap-sm">
+<span class="font-display-lg text-on-tertiary-container">29</span>
+</div>
+</div>
+<!-- Pending Approvals -->
+<div class="bg-surface-container rounded-xl p-md flex flex-col gap-sm shadow-sm relative overflow-hidden group">
+<div class="absolute top-0 left-0 w-full h-[3px] bg-error"></div>
+<div class="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform duration-500">
+<span class="material-symbols-outlined text-[80px]">pending_actions</span>
+</div>
+<span class="font-label-md text-on-surface-variant uppercase tracking-wider">Pending</span>
+<div class="flex items-baseline gap-sm">
+<span class="font-display-lg text-error">12</span>
+</div>
+</div>
+</div>
+<!-- Filters & Table Container -->
+<div class="flex-1 flex flex-col px-xl pb-xl">
+<!-- Filter Bar -->
+<div class="bg-surface-container-low p-sm rounded-t-xl flex flex-col sm:flex-row items-center gap-sm shadow-sm z-10 relative">
+<div class="flex-1 w-full flex items-center gap-sm overflow-x-auto pb-2 sm:pb-0 hide-scrollbar">
+<!-- Type Filter -->
+<div class="relative min-w-[150px]">
+<select class="w-full appearance-none bg-surface border border-outline-variant rounded-lg px-md py-sm text-body-md text-on-surface focus:outline-none focus:border-tertiary focus:ring-2 focus:ring-tertiary/20 cursor-pointer">
+<option>All Types</option>
+<option>NGO</option>
+<option>Panchayat</option>
+<option>Coastal Community</option>
+<option>Restoration Partner</option>
+</select>
+<span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">arrow_drop_down</span>
+</div>
+<!-- State Filter -->
+<div class="relative min-w-[150px]">
+<select class="w-full appearance-none bg-surface border border-outline-variant rounded-lg px-md py-sm text-body-md text-on-surface focus:outline-none focus:border-tertiary focus:ring-2 focus:ring-tertiary/20 cursor-pointer">
+<option>All States</option>
+<option>Gujarat</option>
+<option>Maharashtra</option>
+<option>Tamil Nadu</option>
+<option>Odisha</option>
+<option>West Bengal</option>
+</select>
+<span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">arrow_drop_down</span>
+</div>
+<!-- Status Filter -->
+<div class="relative min-w-[120px]">
+<select class="w-full appearance-none bg-surface border border-outline-variant rounded-lg px-md py-sm text-body-md text-on-surface focus:outline-none focus:border-tertiary focus:ring-2 focus:ring-tertiary/20 cursor-pointer">
+<option>All Status</option>
+<option>Active</option>
+<option>Pending</option>
+<option>Suspended</option>
+</select>
+<span class="material-symbols-outlined absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">arrow_drop_down</span>
+</div>
+<!-- Search -->
+<div class="relative flex-1 min-w-[200px]">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">search</span>
+<input class="w-full bg-surface border border-outline-variant rounded-lg pl-xl pr-md py-sm text-body-md text-on-surface focus:outline-none focus:border-tertiary focus:ring-2 focus:ring-tertiary/20" placeholder="Search by name, ID or location..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-sm w-full sm:w-auto">
+<button class="flex-1 sm:flex-none flex items-center justify-center gap-xs bg-surface border border-outline-variant text-primary px-md py-sm rounded-lg font-title-md hover:bg-surface-container transition-colors whitespace-nowrap">
+<span class="material-symbols-outlined text-[18px]">download</span>
+          Export CSV
+        </button>
+</div>
+</div>
+<!-- Data Table -->
+<div class="bg-surface rounded-b-xl shadow-md overflow-x-auto">
+<table class="w-full min-w-[1000px] text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-highest border-b border-outline-variant">
+<th class="p-md font-label-md text-on-surface-variant uppercase">Organization</th>
+<th class="p-md font-label-md text-on-surface-variant uppercase">Type & Location</th>
+<th class="p-md font-label-md text-on-surface-variant uppercase">Projects</th>
+<th class="p-md font-label-md text-on-surface-variant uppercase">Verified</th>
+<th class="p-md font-label-md text-on-surface-variant uppercase">Status</th>
+<th class="p-md font-label-md text-on-surface-variant uppercase text-right">Actions</th>
+</tr>
+</thead>
+<tbody>
+<!-- Row 1 -->
+<tr @click="sidePanelOpen = true; selectedOrg = 1" class="border-b border-outline-variant hover:bg-primary/5 transition-colors cursor-pointer group">
+<td class="p-md">
+<div class="flex items-center gap-sm">
+<div class="w-10 h-10 rounded-full bg-tertiary-container flex items-center justify-center text-on-tertiary-container shrink-0">
+<span class="font-title-md">GF</span>
+</div>
+<div class="flex flex-col">
+<span class="font-title-md text-on-surface">Green Future Foundation</span>
+<span class="font-mono-data text-on-surface-variant text-[11px]">ORG-2023-8492</span>
+</div>
+</div>
+</td>
+<td class="p-md">
+<div class="flex flex-col gap-xs">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-variant text-on-surface-variant font-label-md w-fit">NGO</span>
+<span class="font-body-md text-on-surface">Kutch, Gujarat</span>
+</div>
+</td>
+<td class="p-md font-mono-data text-on-surface">12</td>
+<td class="p-md font-mono-data text-secondary">8</td>
+<td class="p-md">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded-md bg-secondary/10 text-secondary font-label-md">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                Active
+              </span>
+</td>
+<td class="p-md text-right">
+<button @click.stop="sidePanelOpen = true; selectedOrg = 1" class="p-sm text-on-surface-variant hover:text-primary hover:bg-surface-container rounded-full transition-colors">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr @click="sidePanelOpen = true; selectedOrg = 2" class="border-b border-outline-variant hover:bg-primary/5 transition-colors cursor-pointer group">
+<td class="p-md">
+<div class="flex items-center gap-sm">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container shrink-0">
+<span class="font-title-md">PP</span>
+</div>
+<div class="flex flex-col">
+<span class="font-title-md text-on-surface">Pichavaram Panchayat</span>
+<span class="font-mono-data text-on-surface-variant text-[11px]">ORG-2023-7731</span>
+</div>
+</div>
+</td>
+<td class="p-md">
+<div class="flex flex-col gap-xs">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-variant text-on-surface-variant font-label-md w-fit">Panchayat</span>
+<span class="font-body-md text-on-surface">Cuddalore, Tamil Nadu</span>
+</div>
+</td>
+<td class="p-md font-mono-data text-on-surface">3</td>
+<td class="p-md font-mono-data text-secondary">1</td>
+<td class="p-md">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded-md bg-error/10 text-error font-label-md">
+<span class="w-1.5 h-1.5 rounded-full bg-error animate-pulse"></span>
+                Pending
+              </span>
+</td>
+<td class="p-md text-right">
+<button @click.stop="sidePanelOpen = true; selectedOrg = 2" class="p-sm text-on-surface-variant hover:text-primary hover:bg-surface-container rounded-full transition-colors">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr @click="sidePanelOpen = true; selectedOrg = 3" class="border-b border-outline-variant hover:bg-primary/5 transition-colors cursor-pointer group">
+<td class="p-md">
+<div class="flex items-center gap-sm">
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container shrink-0">
+<span class="font-title-md">OM</span>
+</div>
+<div class="flex flex-col">
+<span class="font-title-md text-on-surface">Ocean Menders Cooperative</span>
+<span class="font-mono-data text-on-surface-variant text-[11px]">ORG-2022-1044</span>
+</div>
+</div>
+</td>
+<td class="p-md">
+<div class="flex flex-col gap-xs">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-variant text-on-surface-variant font-label-md w-fit">Coastal Community</span>
+<span class="font-body-md text-on-surface">Ratnagiri, Maharashtra</span>
+</div>
+</td>
+<td class="p-md font-mono-data text-on-surface">5</td>
+<td class="p-md font-mono-data text-secondary">4</td>
+<td class="p-md">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded-md bg-secondary/10 text-secondary font-label-md">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                Active
+              </span>
+</td>
+<td class="p-md text-right">
+<button @click.stop="sidePanelOpen = true; selectedOrg = 3" class="p-sm text-on-surface-variant hover:text-primary hover:bg-surface-container rounded-full transition-colors">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+<!-- Pagination -->
+<div class="flex items-center justify-between p-md border-t border-outline-variant bg-surface-container-lowest">
+<span class="font-body-md text-on-surface-variant">Showing 1 to 10 of 142 entries</span>
+<div class="flex items-center gap-xs">
+<button class="p-xs rounded hover:bg-surface-container text-on-surface-variant disabled:opacity-50"><span class="material-symbols-outlined">chevron_left</span></button>
+<button class="w-8 h-8 rounded bg-primary text-on-primary font-title-md">1</button>
+<button class="w-8 h-8 rounded hover:bg-surface-container text-on-surface font-title-md">2</button>
+<button class="w-8 h-8 rounded hover:bg-surface-container text-on-surface font-title-md">3</button>
+<span class="px-xs text-on-surface-variant">...</span>
+<button class="w-8 h-8 rounded hover:bg-surface-container text-on-surface font-title-md">15</button>
+<button class="p-xs rounded hover:bg-surface-container text-on-surface-variant"><span class="material-symbols-outlined">chevron_right</span></button>
+</div>
+</div>
+</div>
+</div>
+<!-- Side Panel Overlay -->
+<div @click="sidePanelOpen = false" class="fixed inset-0 bg-inverse-surface/40 backdrop-blur-sm z-50 transition-opacity duration-300" style="display: none;" x-show="sidePanelOpen" x-transition:enter="ease-out" x-transition:enter-end="opacity-100" x-transition:enter-start="opacity-0" x-transition:leave="ease-in" x-transition:leave-end="opacity-0" x-transition:leave-start="opacity-100">
+</div>
+<!-- Side Panel Content -->
+<div class="fixed top-0 right-0 h-full w-full max-w-md bg-surface shadow-2xl z-50 flex flex-col transform transition-transform duration-300 ease-out overflow-hidden" style="display: none;" x-show="sidePanelOpen" x-transition:enter="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:enter-start="translate-x-full" x-transition:leave="translate-x-full" x-transition:leave-end="translate-x-full" x-transition:leave-start="translate-x-0">
+<!-- Panel Header -->
+<div class="flex items-center justify-between p-lg border-b border-outline-variant bg-surface-container-lowest">
+<h2 class="font-title-lg text-on-surface m-0">Organization Details</h2>
+<button @click="sidePanelOpen = false" class="p-sm rounded-full hover:bg-surface-container text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Panel Body (Scrollable) -->
+<div class="flex-1 overflow-y-auto p-lg flex flex-col gap-xl">
+<!-- Org Header Info -->
+<div class="flex gap-md items-start">
+<div class="w-16 h-16 rounded-xl bg-tertiary-container flex items-center justify-center text-on-tertiary-container shrink-0 shadow-sm">
+<span class="font-headline-lg">GF</span>
+</div>
+<div class="flex flex-col gap-xs pt-1">
+<h3 class="font-headline-md text-on-surface leading-tight m-0">Green Future Foundation</h3>
+<div class="flex items-center gap-sm">
+<span class="font-mono-data text-on-surface-variant">ORG-2023-8492</span>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<span class="inline-flex items-center px-2 py-0.5 rounded bg-surface-variant text-on-surface-variant font-label-md">NGO</span>
+</div>
+</div>
+</div>
+<!-- Key Metrics -->
+<div class="grid grid-cols-2 gap-sm">
+<div class="bg-surface-container-low p-md rounded-lg flex flex-col gap-xs">
+<span class="font-label-md text-on-surface-variant uppercase">Total Projects</span>
+<span class="font-headline-lg text-primary">12</span>
+</div>
+<div class="bg-surface-container-low p-md rounded-lg flex flex-col gap-xs">
+<span class="font-label-md text-on-surface-variant uppercase">Verified Projects</span>
+<span class="font-headline-lg text-secondary">8</span>
+</div>
+<div class="bg-surface-container-low p-md rounded-lg flex flex-col gap-xs col-span-2">
+<span class="font-label-md text-on-surface-variant uppercase">Carbon Credits Generated</span>
+<div class="flex items-end gap-sm">
+<span class="font-display-lg text-tertiary leading-none">45,200</span>
+<span class="font-title-md text-on-surface-variant pb-1">tCO₂e</span>
+</div>
+</div>
+</div>
+<!-- Details List -->
+<div class="flex flex-col gap-md">
+<h4 class="font-title-md text-on-surface border-b border-outline-variant pb-xs m-0">Registration Profile</h4>
+<div class="flex flex-col gap-4">
+<div class="flex flex-col">
+<span class="font-label-md text-on-surface-variant">Primary Contact</span>
+<span class="font-body-md text-on-surface">Dr. Aisha Patel (Director)</span>
+<span class="font-body-md text-primary">a.patel@greenfuture.ngo</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-on-surface-variant">Registered Address</span>
+<span class="font-body-md text-on-surface">144 Mangrove Way, Sector 4<br/>Bhuj, Kutch District<br/>Gujarat 370001</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-on-surface-variant">Registration Date</span>
+<span class="font-body-md text-on-surface">October 12, 2023</span>
+</div>
+<div class="flex flex-col">
+<span class="font-label-md text-on-surface-variant">Current Status</span>
+<div class="mt-xs">
+<span class="inline-flex items-center gap-xs px-2 py-1 rounded-md bg-secondary/10 text-secondary font-label-md w-fit">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                Active
+              </span>
+</div>
+</div>
+</div>
+</div>
+<!-- Map Thumbnail -->
+<div class="flex flex-col gap-xs mt-auto">
+<span class="font-label-md text-on-surface-variant">Primary Operating Region</span>
+<div class="w-full h-32 bg-surface-container rounded-lg overflow-hidden border border-outline-variant bg-cover bg-center" data-alt="Satellite map view of the Kutch region in Gujarat India, showing coastal areas and mangrove habitats. Deep ocean blue and turquoise accents in the map style, highly professional and precise GIS rendering." data-location="Kutch, Gujarat, India" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuASXCxx08HJUHG9VCBezryr4Hj3kT__nnigkDNrOGX2jFr0Nu6Yw_1lBgBd4oYNFIg4Jn1RKWTZmgOf1pSlY3GIq28t_mM44R6_jMVbHIZ26suv_WNBtE9Pl5gnA9Jm0eW673-ZHY8tbkklSVshdJF0hcZEiCnW4KSdvRbIuqsLQ8AZQW_VbvHOIG6HAcdqaOufxgJB1i2BGmMJPfaeGmoje4yqku9_e1-AZPiycEh73hjAggkiwG8UpA')">
+</div>
+</div>
+</div>
+<!-- Panel Footer Actions -->
+<div class="p-lg border-t border-outline-variant bg-surface-container-lowest flex gap-md">
+<button class="flex-1 bg-surface border border-outline-variant text-error px-md py-sm rounded-lg font-title-md hover:bg-error-container transition-colors">
+        Suspend
+      </button>
+<button class="flex-1 bg-primary text-on-primary px-md py-sm rounded-lg font-title-md hover:bg-primary-container transition-colors">
+        View Projects
+      </button>
+</div>
+</div>
+</div>
+<!-- Include Alpine.js for interactions -->
+<script defer="" src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script></main></div></body></html>
