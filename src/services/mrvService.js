@@ -237,15 +237,16 @@ export async function uploadEvidence({ projectId, submissionId = null, file, evi
   const sanitizedName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
   const storagePath = `projects/${projectDbId}/${Date.now()}_${sanitizedName}`;
 
-  try {
-    await supabase.storage
-      .from('evidence-vault')
-      .upload(storagePath, file, {
-        cacheControl: '3600',
-        upsert: false,
-      });
-  } catch (storageError) {
-    console.warn('Storage upload notice:', storageError);
+  const { error: storageError } = await supabase.storage
+    .from('evidence-vault')
+    .upload(storagePath, file, {
+      cacheControl: '3600',
+      upsert: false,
+    });
+
+  if (storageError) {
+    console.error('Storage upload failed:', storageError);
+    throw storageError;
   }
 
   const validationResult = validateEvidenceFile(file, metadata);

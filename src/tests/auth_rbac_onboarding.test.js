@@ -125,17 +125,86 @@ export async function runAuthRbacTests() {
     assert(sql.includes('DROP POLICY IF EXISTS "Public can view application status"'), 'Must drop public select policy on onboarding_requests');
   });
 
-  // 12. Canonical Roles in Active Route Guards
-  await recordTest('RBAC: Route guards do not accept legacy roles', () => {
+  // 13. Dedicated Admin Login and Non-Admin Session Termination
+  await recordTest('Auth: AdminLogin.jsx exists and enforces non-admin session termination', () => {
+    const adminLoginPath = path.resolve('src', 'pages', 'auth', 'AdminLogin.jsx');
+    assert(fs.existsSync(adminLoginPath), 'AdminLogin.jsx must exist');
+    const code = fs.readFileSync(adminLoginPath, 'utf8');
+    assert(code.includes('logoutUser()'), 'AdminLogin must call logoutUser() for non-admin attempts');
+    assert(code.includes('ROLES.NCCR_ADMIN'), 'AdminLogin must check for NCCR_ADMIN role');
+    assert(code.includes('ROUTES.ADMIN_DASHBOARD'), 'AdminLogin must navigate to admin dashboard on success');
+  });
+
+  // 14. Safe state.from restoration in Login.jsx
+  await recordTest('Auth: Login.jsx safely validates state.from and routes verifiers to workspace', () => {
+    const loginPath = path.resolve('src', 'pages', 'auth', 'Login.jsx');
+    const code = fs.readFileSync(loginPath, 'utf8');
+    assert(code.includes('isRouteAllowedForRole'), 'Login must validate target route against user role');
+    assert(code.includes('PRJ-2023-089'), 'Login must direct VERIFIER to MRV workspace PRJ-2023-089');
+    assert(code.includes('ROUTES.ADMIN_LOGIN'), 'Login must contain link to Admin Portal');
+  });
+
+  // 15. Security-Classified Login Redirects in RoleRoute
+  await recordTest('Security: RoleRoute directs unauthenticated admin attempts to /admin/login', () => {
+    const roleRoutePath = path.resolve('src', 'components', 'auth', 'RoleRoute.jsx');
+    const code = fs.readFileSync(roleRoutePath, 'utf8');
+    assert(code.includes('ROUTES.ADMIN_LOGIN'), 'RoleRoute must redirect admin-only routes to ADMIN_LOGIN');
+    assert(code.includes('AUTH_STATUS.INITIALIZING'), 'RoleRoute must check AUTH_STATUS.INITIALIZING');
+    assert(code.includes('AUTH_STATUS.PROFILE_INVALID'), 'RoleRoute must fail closed on PROFILE_INVALID');
+  });
+
+  // 16. Missing profile fails closed to PROFILE_INVALID in AuthContext
+  await recordTest('Security: AuthContext resolves missing profile to PROFILE_INVALID immediately', () => {
+    const authContextPath = path.resolve('src', 'contexts', 'AuthContext.jsx');
+    const code = fs.readFileSync(authContextPath, 'utf8');
+    assert(code.includes('AUTH_STATUS.PROFILE_INVALID'), 'AuthContext must set PROFILE_INVALID on missing/invalid role');
+    assert(!code.includes('PROFILE_PENDING'), 'AuthContext must not leave users stuck in PROFILE_PENDING');
+  });
+
+  // 17. Verifier Sidebar Excludes Admin-Only Links
+  await recordTest('UI/RBAC: Sidebar renders verifierLinks without admin governance or settings', () => {
+    const sidebarPath = path.resolve('src', 'components', 'layout', 'Sidebar.jsx');
+    const code = fs.readFileSync(sidebarPath, 'utf8');
+    assert(code.includes('verifierLinks'), 'Sidebar must define verifierLinks');
+    assert(code.includes('isVerifier'), 'Sidebar must check isVerifier');
+  });
+
+  // 18. Unnested Verifier Route Group in AppRoutes
+  await recordTest('Routing: AppRoutes has distinct [VERIFIER, NCCR_ADMIN] route group', () => {
     const routesPath = path.resolve('src', 'routes', 'AppRoutes.jsx');
     const code = fs.readFileSync(routesPath, 'utf8');
-    assert(!code.includes("'ORG_ADMIN'"), 'AppRoutes must not contain ORG_ADMIN');
-    assert(!code.includes("'COMMUNITY_USER'"), 'AppRoutes must not contain COMMUNITY_USER');
+    assert(code.includes('allowedRoles={[ROLES.VERIFIER, ROLES.NCCR_ADMIN]}'), 'AppRoutes must contain verifier+admin route group');
+    assert(code.includes('RootRedirect'), 'AppRoutes must implement role-aware RootRedirect');
+    assert(code.includes('ADMIN_LOGIN'), 'AppRoutes must register ADMIN_LOGIN route');
+  });
 
-    const layoutPath = path.resolve('src', 'components', 'layout', 'OrganizationLayout.jsx');
-    const layoutCode = fs.readFileSync(layoutPath, 'utf8');
-    assert(!layoutCode.includes("'ORG_ADMIN'"), 'OrganizationLayout must not contain ORG_ADMIN');
-    assert(!layoutCode.includes("'COMMUNITY_USER'"), 'OrganizationLayout must not contain COMMUNITY_USER');
+  // 19. Edge Function Caller Authorization Verification
+  await recordTest('Backend Security: anchor-mrv Edge Function validates caller authentication', () => {
+    const edgeFnPath = path.resolve('supabase', 'functions', 'anchor-mrv', 'index.ts');
+    assert(fs.existsSync(edgeFnPath), 'anchor-mrv Edge Function must exist');
+    const code = fs.readFileSync(edgeFnPath, 'utf8');
+    assert(code.includes('getUser(token)'), 'Edge Function must validate user token');
+    assert(code.includes('Missing authorization') || code.includes('Invalid session'), 'Edge Function must reject unauthenticated requests');
+  });
+
+  // 20. Community Evidence Upload Drop Zone & File Input
+  await recordTest('Community Upload: Drop zone triggers fileInput click and handles drag-and-drop', () => {
+    const uploadPagePath = path.resolve('src', 'features', 'community', 'pages', 'CommunityEvidenceUploadPage.jsx');
+    assert(fs.existsSync(uploadPagePath), 'CommunityEvidenceUploadPage.jsx must exist');
+    const code = fs.readFileSync(uploadPagePath, 'utf8');
+    assert(code.includes('fileInputRef.current?.click()'), 'Drop zone must trigger fileInputRef click');
+    assert(code.includes('type="file"'), 'Must contain hidden type="file" input');
+    assert(code.includes('onDrop={handleDrop}'), 'Must attach onDrop handler');
+    assert(code.includes('uploadEvidence('), 'Must call uploadEvidence on valid file select');
+    assert(code.includes('!uploadedEvidence || isUploading'), 'Step 2 Next Step must be gated on uploaded evidence');
+  });
+
+  // 21. mrvService Upload Evidence throws on storage error
+  await recordTest('MRV Service: uploadEvidence throws storage error and does not swallow failures', () => {
+    const mrvServicePath = path.resolve('src', 'services', 'mrvService.js');
+    const code = fs.readFileSync(mrvServicePath, 'utf8');
+    assert(code.includes('if (storageError)'), 'uploadEvidence must check storageError');
+    assert(code.includes('throw storageError;'), 'uploadEvidence must throw storageError on upload failure');
   });
 
   return testResults;

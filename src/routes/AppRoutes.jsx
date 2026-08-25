@@ -1,10 +1,12 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ROLES, ROUTES } from '../utils/constants';
+import { useAuth, AUTH_STATUS } from '../contexts/AuthContext';
 import RoleRoute from '../components/auth/RoleRoute';
 import AdminLayout from '../components/layout/AdminLayout';
 import OrganizationLayout from '../components/layout/OrganizationLayout';
 import PublicLayout from '../components/layout/PublicLayout';
 import Login from '../pages/auth/Login';
+import AdminLogin from '../pages/auth/AdminLogin';
 import Signup from '../pages/auth/Signup';
 import ForgotPassword from '../pages/auth/ForgotPassword';
 import AccessRestricted from '../pages/auth/AccessRestricted';
@@ -52,19 +54,56 @@ import { SettingsPage } from '../features/settings';
 
 import { IS_UI_PREVIEW_MODE } from '../config/uiPreviewMode';
 
+function RootRedirect() {
+  const { user, isLoading, authStatus } = useAuth();
+
+  if (IS_UI_PREVIEW_MODE) {
+    return <Navigate to={ROUTES.ADMIN_DASHBOARD} replace />;
+  }
+
+  if (isLoading || authStatus === AUTH_STATUS.INITIALIZING) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3">
+        <div className="w-10 h-10 border-3 border-primary/20 border-t-primary rounded-full animate-spin"></div>
+        <span className="font-mono-data text-xs text-on-surface-variant">Resolving Session...</span>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to={ROUTES.LOGIN} replace />;
+  }
+
+  switch (user.role) {
+    case ROLES.NCCR_ADMIN:
+      return <Navigate to={ROUTES.ADMIN_DASHBOARD} replace />;
+    case ROLES.VERIFIER:
+      return <Navigate to={ROUTES.ADMIN_MRV_WORKSPACE.replace(':projectId', 'PRJ-2023-089')} replace />;
+    case ROLES.NGO:
+    case ROLES.PANCHAYAT:
+    case ROLES.PROJECT_MANAGER:
+      return <Navigate to={ROUTES.ORG_DASHBOARD} replace />;
+    case ROLES.COMMUNITY:
+      return <Navigate to={ROUTES.COMMUNITY_DASHBOARD} replace />;
+    default:
+      return <Navigate to={ROUTES.ACCESS_RESTRICTED} replace />;
+  }
+}
+
 export default function AppRoutes() {
   return (
     <Routes>
       {/* Public Authentication & Onboarding Routes */}
       <Route path={ROUTES.LOGIN} element={<Login />} />
+      <Route path={ROUTES.ADMIN_LOGIN} element={<AdminLogin />} />
       <Route path={ROUTES.SIGNUP} element={<Signup />} />
       <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
       <Route path={ROUTES.ACCESS_RESTRICTED} element={<AccessRestricted />} />
       <Route path={ROUTES.ONBOARDING} element={<OrganizationOnboardingPage />} />
       <Route path={ROUTES.ONBOARDING_STATUS} element={<OnboardingStatusPage />} />
-      <Route path="/" element={<Navigate to={IS_UI_PREVIEW_MODE ? ROUTES.ADMIN_DASHBOARD : ROUTES.LOGIN} replace />} />
+      <Route path="/" element={<RootRedirect />} />
 
-      {/* NCCR National Governance & Admin Routes (NCCR_ADMIN Only) */}
+      {/* 1. NCCR National Governance & Admin-Only Routes (NCCR_ADMIN Only) */}
       <Route element={<RoleRoute allowedRoles={[ROLES.NCCR_ADMIN]}><AdminLayout /></RoleRoute>}>
         <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboard />} />
         <Route path={ROUTES.ADMIN_GOVERNANCE} element={<NationalGovernancePage />} />
@@ -73,24 +112,21 @@ export default function AppRoutes() {
         <Route path="/national-map" element={<NationalMapExplorerPage />} />
         <Route path={ROUTES.ADMIN_GOVERNANCE_QUEUES} element={<GovernanceQueuesPage />} />
         <Route path="/governance/queues" element={<GovernanceQueuesPage />} />
-        <Route path={ROUTES.ADMIN_PROJECTS} element={<ProjectsPage />} />
         <Route path={ROUTES.ADMIN_PROJECT_NEW} element={<ProjectFormPage />} />
-        <Route path={ROUTES.ADMIN_PROJECT_DETAIL} element={<ProjectDetailPage />} />
-        <Route path={ROUTES.ADMIN_MRV} element={<Navigate to={ROUTES.ADMIN_MRV_WORKSPACE.replace(':projectId', 'PRJ-2023-089')} replace />} />
-        <Route path={ROUTES.ADMIN_MRV_UPLOAD} element={<UploadMrvEvidencePage />} />
-        <Route path={ROUTES.ADMIN_MRV_PROJECT_VERIFICATION} element={<ProjectVerificationPage />} />
-        <Route path={ROUTES.ADMIN_MRV_WORKSPACE} element={<MrvVerificationWorkspacePage />} />
-        <Route path="/mrv/blockchain/:submissionId" element={<MrvBlockchainAnchorPage />} />
         <Route path={ROUTES.ADMIN_ORGANIZATIONS} element={<OrganizationsPage />} />
         <Route path={ROUTES.ADMIN_ORGANIZATION_DETAIL} element={<OrganizationsPage />} />
-        <Route path={ROUTES.ADMIN_CARBON_CREDITS} element={<CarbonCreditsPage />} />
-        <Route path={ROUTES.ADMIN_CARBON_CREDIT_DETAIL} element={<CarbonCreditDetailPage />} />
-        <Route path={ROUTES.ADMIN_BLOCKCHAIN} element={<BlockchainRecordsPage />} />
-        <Route path="/admin/blockchain/:id" element={<BlockchainRecordDetailPage />} />
-        <Route path="/carbon-credits" element={<CarbonCreditsPage />} />
-        <Route path="/carbon-credits/:id" element={<CarbonCreditDetailPage />} />
-        <Route path="/blockchain" element={<BlockchainRecordsPage />} />
-        <Route path="/blockchain/:id" element={<BlockchainRecordDetailPage />} />
+        <Route path={ROUTES.ADMIN_SETTINGS} element={<SettingsPage />} />
+      </Route>
+
+      {/* 2. MRV Verification & Audit Routes (VERIFIER and NCCR_ADMIN) */}
+      <Route element={<RoleRoute allowedRoles={[ROLES.VERIFIER, ROLES.NCCR_ADMIN]}><AdminLayout /></RoleRoute>}>
+        <Route path={ROUTES.ADMIN_MRV} element={<Navigate to={ROUTES.ADMIN_MRV_WORKSPACE.replace(':projectId', 'PRJ-2023-089')} replace />} />
+        <Route path={ROUTES.ADMIN_MRV_WORKSPACE} element={<MrvVerificationWorkspacePage />} />
+        <Route path={ROUTES.ADMIN_MRV_PROJECT_VERIFICATION} element={<ProjectVerificationPage />} />
+        <Route path={ROUTES.ADMIN_MRV_UPLOAD} element={<UploadMrvEvidencePage />} />
+        <Route path="/mrv/blockchain/:submissionId" element={<MrvBlockchainAnchorPage />} />
+        <Route path={ROUTES.ADMIN_PROJECTS} element={<ProjectsPage />} />
+        <Route path={ROUTES.ADMIN_PROJECT_DETAIL} element={<ProjectDetailPage />} />
         <Route path={ROUTES.ADMIN_OCR_REVIEW} element={<OcrReviewWorkspace />} />
         <Route path="/mrv/ocr" element={<OcrReviewWorkspace />} />
         <Route path={ROUTES.ADMIN_SENSORS} element={<SensorRegistryView />} />
@@ -101,14 +137,21 @@ export default function AppRoutes() {
         <Route path="/mrv/intelligence" element={<MrvIntelligenceDashboard />} />
         <Route path={ROUTES.ADMIN_MRV_ANOMALIES} element={<MrvAnomalyMatrix />} />
         <Route path="/mrv/anomalies" element={<MrvAnomalyMatrix />} />
+        <Route path={ROUTES.ADMIN_CARBON_CREDITS} element={<CarbonCreditsPage />} />
+        <Route path={ROUTES.ADMIN_CARBON_CREDIT_DETAIL} element={<CarbonCreditDetailPage />} />
+        <Route path="/carbon-credits" element={<CarbonCreditsPage />} />
+        <Route path="/carbon-credits/:id" element={<CarbonCreditDetailPage />} />
+        <Route path={ROUTES.ADMIN_BLOCKCHAIN} element={<BlockchainRecordsPage />} />
+        <Route path="/admin/blockchain/:id" element={<BlockchainRecordDetailPage />} />
+        <Route path="/blockchain" element={<BlockchainRecordsPage />} />
+        <Route path="/blockchain/:id" element={<BlockchainRecordDetailPage />} />
         <Route path={ROUTES.ADMIN_REPORTS} element={<ReportsPage />} />
         <Route path="/admin/reports/:id" element={<ReportDetailPage />} />
         <Route path={ROUTES.ADMIN_AUDIT} element={<AuditTrailPage />} />
         <Route path="/admin/audit/:id" element={<AuditTrailDetailPage />} />
-        <Route path={ROUTES.ADMIN_SETTINGS} element={<SettingsPage />} />
       </Route>
 
-      {/* Organization Portal Routes (NGO, Panchayat, Project Manager, NCCR_ADMIN) */}
+      {/* 3. Organization Portal Routes (NGO, Panchayat, Project Manager, NCCR_ADMIN) */}
       <Route element={<RoleRoute allowedRoles={[ROLES.NGO, ROLES.PANCHAYAT, ROLES.PROJECT_MANAGER, ROLES.NCCR_ADMIN]}><OrganizationLayout /></RoleRoute>}>
         <Route path={ROUTES.ORG_DASHBOARD} element={<OrganizationDashboardPage />} />
         <Route path={ROUTES.ORG_PROJECTS} element={<OrganizationProjectsPage />} />
@@ -118,7 +161,7 @@ export default function AppRoutes() {
         <Route path={ROUTES.ORG_SETTINGS} element={<SettingsPage />} />
       </Route>
 
-      {/* Community User Portal Routes (COMMUNITY, NCCR_ADMIN) */}
+      {/* 4. Community User Portal Routes (COMMUNITY, NCCR_ADMIN) */}
       <Route element={<RoleRoute allowedRoles={[ROLES.COMMUNITY, ROLES.NCCR_ADMIN]}><OrganizationLayout /></RoleRoute>}>
         <Route path={ROUTES.COMMUNITY_DASHBOARD} element={<CommunityDashboardPage />} />
         <Route path={ROUTES.COMMUNITY_PORTAL} element={<CommunityPortalPage />} />
@@ -134,7 +177,7 @@ export default function AppRoutes() {
         <Route path={ROUTES.COMMUNITY_SETTINGS} element={<CommunitySettingsPage />} />
       </Route>
 
-      {/* Public Registry & Credit DNA Transparency Routes */}
+      {/* 5. Public Registry & Credit DNA Transparency Routes */}
       <Route element={<PublicLayout />}>
         <Route path={ROUTES.PUBLIC_REGISTRY} element={<PublicRegistryPage />} />
         <Route path={ROUTES.PUBLIC_PROJECT_DETAIL} element={<PublicRegistryDetailPage />} />

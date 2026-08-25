@@ -19,7 +19,6 @@ export const AUTH_STATUS = {
   INITIALIZING: 'INITIALIZING',
   AUTHENTICATED: 'AUTHENTICATED',
   UNAUTHENTICATED: 'UNAUTHENTICATED',
-  PROFILE_PENDING: 'PROFILE_PENDING',
   PROFILE_INVALID: 'PROFILE_INVALID',
   ERROR: 'ERROR',
 };
@@ -31,24 +30,22 @@ export function AuthProvider({ children }) {
   const [authStatus, setAuthStatus] = useState(IS_UI_PREVIEW_MODE ? AUTH_STATUS.AUTHENTICATED : AUTH_STATUS.INITIALIZING);
 
   // Helper to format user object for app consumption
-  // STRICT: Never fall back to NCCR_ADMIN or any administrative role
+  // STRICT: Authoritative role source is database public.profiles.role ONLY
   const formatAuthUser = (supabaseUser, profile) => {
     if (!supabaseUser) return null;
 
-    const metadata = supabaseUser.user_metadata || {};
-    // Canonical role resolution: explicit DB profile role > metadata role > null
-    const rawRole = profile?.role || metadata.role || null;
-    const role = (rawRole && Object.values(ROLES).includes(rawRole)) ? rawRole : (rawRole ? rawRole : null);
-    const orgName = profile?.organization?.name || metadata.organization || null;
+    const rawRole = profile?.role || null;
+    const role = (rawRole && Object.values(ROLES).includes(rawRole)) ? rawRole : null;
+    const orgName = profile?.organization?.name || null;
 
     return {
       id: supabaseUser.id,
       email: supabaseUser.email,
-      name: profile?.full_name || metadata.full_name || metadata.name || supabaseUser.email?.split('@')[0] || 'User',
+      name: profile?.full_name || supabaseUser.email?.split('@')[0] || 'User',
       role,
       organization: orgName,
-      organizationId: profile?.organization_id || metadata.organization_id || null,
-      phone: profile?.phone || metadata.phone || null,
+      organizationId: profile?.organization_id || null,
+      phone: profile?.phone || null,
       avatar: profile?.avatar_url || null,
       profile,
       isRoleAssigned: Boolean(role),
@@ -66,7 +63,7 @@ export function AuthProvider({ children }) {
           if (current) {
             const formatted = formatAuthUser(current, current.profile);
             setUser(formatted);
-            setAuthStatus(formatted.role ? AUTH_STATUS.AUTHENTICATED : AUTH_STATUS.PROFILE_PENDING);
+            setAuthStatus(formatted.role ? AUTH_STATUS.AUTHENTICATED : AUTH_STATUS.PROFILE_INVALID);
           } else {
             setUser(null);
             setAuthStatus(AUTH_STATUS.UNAUTHENTICATED);
@@ -94,7 +91,7 @@ export function AuthProvider({ children }) {
       if (currentSession?.user) {
         const formatted = formatAuthUser(currentSession.user, profile);
         setUser(formatted);
-        setAuthStatus(formatted.role ? AUTH_STATUS.AUTHENTICATED : AUTH_STATUS.PROFILE_PENDING);
+        setAuthStatus(formatted.role ? AUTH_STATUS.AUTHENTICATED : AUTH_STATUS.PROFILE_INVALID);
       } else {
         setUser(null);
         setAuthStatus(AUTH_STATUS.UNAUTHENTICATED);
@@ -115,7 +112,7 @@ export function AuthProvider({ children }) {
       const appUser = formatAuthUser(authUser, profile);
       setUser(appUser);
       setSession(authSession);
-      setAuthStatus(appUser.role ? AUTH_STATUS.AUTHENTICATED : AUTH_STATUS.PROFILE_PENDING);
+      setAuthStatus(appUser.role ? AUTH_STATUS.AUTHENTICATED : AUTH_STATUS.PROFILE_INVALID);
       return appUser;
     } catch (err) {
       setAuthStatus(AUTH_STATUS.UNAUTHENTICATED);
@@ -133,7 +130,7 @@ export function AuthProvider({ children }) {
         const appUser = formatAuthUser(authUser, profile);
         setUser(appUser);
         setSession(authSession);
-        setAuthStatus(appUser.role ? AUTH_STATUS.AUTHENTICATED : AUTH_STATUS.PROFILE_PENDING);
+        setAuthStatus(appUser.role ? AUTH_STATUS.AUTHENTICATED : AUTH_STATUS.PROFILE_INVALID);
         return { user: appUser, session: authSession, requiresConfirmation: !authSession };
       }
       return { user: null, session: null, requiresConfirmation: true };

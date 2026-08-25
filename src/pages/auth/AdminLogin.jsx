@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { ROLES, ROUTES } from '../../utils/constants';
-import { checkRegistryHealth } from '../../services/authService';
+import { checkRegistryHealth, logoutUser } from '../../services/authService';
 
-export default function Login() {
+export default function AdminLogin() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -12,7 +12,6 @@ export default function Login() {
   const [nodeStatus, setNodeStatus] = useState({ checking: true, online: false });
   const { login, isLoading } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     let isMounted = true;
@@ -28,55 +27,6 @@ export default function Login() {
     };
   }, []);
 
-  const getRoleLandingRoute = (role) => {
-    switch (role) {
-      case ROLES.NCCR_ADMIN:
-        return ROUTES.ADMIN_DASHBOARD;
-      case ROLES.VERIFIER:
-        return ROUTES.ADMIN_MRV_WORKSPACE.replace(':projectId', 'PRJ-2023-089');
-      case ROLES.NGO:
-      case ROLES.PANCHAYAT:
-      case ROLES.PROJECT_MANAGER:
-        return ROUTES.ORG_DASHBOARD;
-      case ROLES.COMMUNITY:
-        return ROUTES.COMMUNITY_DASHBOARD;
-      default:
-        return ROUTES.ACCESS_RESTRICTED;
-    }
-  };
-
-  const isRouteAllowedForRole = (path, role) => {
-    if (!path || !role) return false;
-    if (role === ROLES.NCCR_ADMIN) return true;
-    if (role === ROLES.VERIFIER) {
-      const verifierAllowedPrefixes = [
-        '/mrv',
-        '/projects',
-        '/admin/ocr-review',
-        '/admin/sensors',
-        '/sensors',
-        '/admin/drone-survey',
-        '/drone',
-        '/admin/mrv-intelligence',
-        '/admin/mrv-anomalies',
-        '/admin/carbon-credits',
-        '/carbon-credits',
-        '/admin/blockchain',
-        '/blockchain',
-        '/admin/reports',
-        '/admin/audit',
-      ];
-      return verifierAllowedPrefixes.some((prefix) => path.startsWith(prefix));
-    }
-    if (role === ROLES.NGO || role === ROLES.PANCHAYAT || role === ROLES.PROJECT_MANAGER) {
-      return path.startsWith('/organization');
-    }
-    if (role === ROLES.COMMUNITY) {
-      return path.startsWith('/community') || path.startsWith('/public');
-    }
-    return false;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isLoading) return;
@@ -84,15 +34,16 @@ export default function Login() {
 
     try {
       const user = await login(email, password);
-      const targetFrom = location.state?.from?.pathname;
-
-      if (targetFrom && isRouteAllowedForRole(targetFrom, user?.role)) {
-        navigate(targetFrom);
+      // Strict role check: Only NCCR_ADMIN is permitted through this portal
+      if (user && user.role === ROLES.NCCR_ADMIN) {
+        navigate(ROUTES.ADMIN_DASHBOARD);
       } else {
-        navigate(getRoleLandingRoute(user?.role));
+        // Immediate non-admin session termination
+        await logoutUser();
+        setError('Access Denied: Administrator privileges required for this portal.');
       }
     } catch (err) {
-      setError(err.message || 'Invalid email or password.');
+      setError(err.message || 'Invalid administrative credentials.');
     }
   };
 
@@ -110,18 +61,18 @@ export default function Login() {
         </div>
         <div className="relative z-10 flex flex-col justify-end p-12 lg:p-24 h-full text-on-primary max-w-2xl">
           <div className="mb-8">
-            <span className="inline-block px-3 py-1 mb-4 rounded-full bg-primary-container text-on-primary-container font-label-md uppercase tracking-wider">Secure Access</span>
-            <h1 className="font-display-lg text-on-primary mb-6 leading-tight">Digital Permanence for Blue Carbon.</h1>
-            <p className="font-body-lg text-on-primary/80 max-w-[512px]">Access the central registry for verified marine carbon sequestration data, immutable audit trails, and global ecological monitoring.</p>
+            <span className="inline-block px-3 py-1 mb-4 rounded-full bg-primary-container text-on-primary-container font-label-md uppercase tracking-wider">National Administration</span>
+            <h1 className="font-display-lg text-on-primary mb-6 leading-tight">National Registry Governance & Policy.</h1>
+            <p className="font-body-lg text-on-primary/80 max-w-[512px]">Restricted portal for National Coastal Carbon Registry officers, policy managers, and national administrative oversight.</p>
           </div>
           <div className="grid grid-cols-2 gap-8 mt-12 border-t border-on-primary/20 pt-12">
             <div>
-              <div className="font-headline-md text-tertiary-fixed mb-1">2.4M+</div>
-              <div className="font-label-md text-on-primary/60 uppercase">Hectares Monitored</div>
+              <div className="font-headline-md text-tertiary-fixed mb-1">NCCR</div>
+              <div className="font-label-md text-on-primary/60 uppercase">Registry Authority</div>
             </div>
             <div>
-              <div className="font-headline-md text-secondary-fixed mb-1">100%</div>
-              <div className="font-label-md text-on-primary/60 uppercase">Blockchain Verified</div>
+              <div className="font-headline-md text-secondary-fixed mb-1">Level 4</div>
+              <div className="font-label-md text-on-primary/60 uppercase">Administrative Scope</div>
             </div>
           </div>
         </div>
@@ -132,11 +83,15 @@ export default function Login() {
         {/* Decorative background element */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary-fixed-dim/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
         <div className="w-full max-w-[440px] mx-auto relative z-10 py-6">
-          {/* Logo */}
+          {/* Logo & Heading */}
           <div className="mb-8 text-center lg:text-left">
             <img alt="BlueCarbon MRV Registry Logo" className="h-16 w-auto mb-6 mx-auto lg:mx-0 object-contain drop-shadow-sm" src="https://lh3.googleusercontent.com/aida/AEtjO1VW17fNGVMtPR23qYyffLAVoeuR5Kdj9tUp6MT_5V8XfzIDrHbzRM0w4PQKao_zH8sPwHYenPV-Jk0xV6OTTfahEdaecImu4vFWpKKvMTLzgxJcizYNc3V9LNKyURj8rSEiORjN6gv5kMJl4-b38UctUSP2ENOzee6PP9s7MFtDKB2fDGiOFf1-ioktRKCW2MLcv19djw8fd54LKOVv0ZW-P6PUX-kHqOjDZj3hZuhUuDgD2_B3JtzI4OU-"/>
-            <h2 className="font-headline-lg text-on-surface mb-2">Welcome back</h2>
-            <p className="font-body-lg text-on-surface-variant">Sign in to access the BlueCarbon MRV Registry</p>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary font-mono-data text-xs font-semibold mb-3">
+              <span className="material-symbols-outlined text-[14px]">shield</span>
+              NCCR Administrator Portal
+            </div>
+            <h2 className="font-headline-lg text-on-surface mb-2">Administrator Sign In</h2>
+            <p className="font-body-lg text-on-surface-variant">Sign in with verified registry administrator credentials</p>
           </div>
 
           {error && (
@@ -149,14 +104,14 @@ export default function Login() {
           {/* Form */}
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div className="space-y-2">
-              <label className="block font-label-md text-on-surface" htmlFor="email">Email Address</label>
+              <label className="block font-label-md text-on-surface" htmlFor="admin-email">Administrator Email</label>
               <div className="relative">
-                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">mail</span>
+                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">admin_panel_settings</span>
                 <input 
                   className="w-full pl-10 pr-4 py-3 bg-surface-container-lowest border border-outline-variant rounded-lg text-body-md text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-tertiary-container focus:ring-2 focus:ring-tertiary-container/20 transition-all shadow-sm" 
-                  id="email" 
+                  id="admin-email" 
                   name="email" 
-                  placeholder="name@organization.com" 
+                  placeholder="admin@nccr.gov.in" 
                   required 
                   type="email"
                   value={email}
@@ -167,7 +122,7 @@ export default function Login() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="block font-label-md text-on-surface" htmlFor="password">Password</label>
+                <label className="block font-label-md text-on-surface" htmlFor="admin-password">Password</label>
                 <Link className="font-label-md text-primary hover:text-primary/80 transition-colors underline-offset-4 hover:underline text-xs" to={ROUTES.FORGOT_PASSWORD}>
                   Forgot password?
                 </Link>
@@ -176,7 +131,7 @@ export default function Login() {
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">lock</span>
                 <input 
                   className="w-full pl-10 pr-10 py-3 bg-surface-container-lowest border border-outline-variant rounded-lg text-body-md text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:border-tertiary-container focus:ring-2 focus:ring-tertiary-container/20 transition-all shadow-sm" 
-                  id="password" 
+                  id="admin-password" 
                   name="password" 
                   placeholder="••••••••" 
                   required 
@@ -202,35 +157,23 @@ export default function Login() {
               {isLoading ? (
                 <>
                   <span className="material-symbols-outlined animate-spin text-[20px]">progress_activity</span>
-                  <span>Authenticating...</span>
+                  <span>Verifying Credentials...</span>
                 </>
               ) : (
                 <>
-                  <span>Sign In</span>
+                  <span>Sign In to Admin Portal</span>
                   <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
                 </>
               )}
             </button>
           </form>
 
-          {/* Create Account & Onboarding Navigation */}
+          {/* User Login Navigation Link */}
           <div className="mt-8 pt-6 border-t border-outline-variant/30 text-center space-y-3">
             <p className="font-body-md text-on-surface-variant text-sm">
-              Don't have an account?{' '}
-              <Link className="font-title-md text-primary hover:underline font-bold" to={ROUTES.SIGNUP || '/signup'}>
-                Create Account
-              </Link>
-            </p>
-            <p className="font-body-md text-on-surface-variant text-xs">
-              New NGO, Panchayat, or Community?{' '}
-              <Link className="font-title-md text-primary hover:underline font-semibold" to={ROUTES.ONBOARDING}>
-                Apply for Onboarding
-              </Link>
-            </p>
-            <p className="font-body-md text-on-surface-variant text-xs">
-              Registry Officer?{' '}
-              <Link className="font-title-md text-primary hover:underline font-semibold" to={ROUTES.ADMIN_LOGIN}>
-                Sign in to Admin Portal
+              Not an NCCR Administrator?{' '}
+              <Link className="font-title-md text-primary hover:underline font-bold" to={ROUTES.LOGIN}>
+                Go to User Sign In
               </Link>
             </p>
             <div>
