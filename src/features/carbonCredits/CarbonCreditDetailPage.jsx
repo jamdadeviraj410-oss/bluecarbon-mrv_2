@@ -339,12 +339,18 @@ export default function CarbonCreditDetailPage() {
                 </div>
               </div>
 
-              <div className="relative z-10 w-full space-y-3 mt-2">
+              <div
+                style={{ width: 'min(100%, 28rem)', maxWidth: '100%', minWidth: 0, marginInline: 'auto' }}
+                className="relative z-10 space-y-3 mt-2"
+              >
                 <h3 className="font-display-lg text-primary-container text-xl sm:text-2xl uppercase tracking-widest leading-tight">
                   Certificate of<br />Carbon Sequestration
                 </h3>
                 <div className="h-px w-20 bg-tertiary-container mx-auto"></div>
-                <p className="font-body-lg text-on-surface italic w-full max-w-md mx-auto text-sm sm:text-base leading-relaxed px-2">
+                <p
+                  style={{ width: '100%', minWidth: 0, textAlign: 'center' }}
+                  className="font-body-lg text-on-surface italic text-sm sm:text-base leading-relaxed px-2"
+                >
                   This certifies that{' '}
                   <strong className="font-headline-md text-on-surface not-italic block my-2 text-lg text-primary font-bold">
                     {formatNumber(credit.quantity)} tCO2e

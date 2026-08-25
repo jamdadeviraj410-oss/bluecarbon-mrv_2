@@ -301,6 +301,10 @@ export function extractStructuredMrvData(text, baseConfidence = 85) {
  * @returns {Promise<{ rawText: string, structuredData: Object, confidenceScore: number, confidenceLevel: string, engine: string }>}
  */
 export async function performOcrScan(imageSource, onProgress = () => {}) {
+  if (!imageSource) {
+    throw new Error('No valid document or image provided for OCR scanning.');
+  }
+
   try {
     onProgress({ status: 'Initializing Tesseract OCR worker...', progress: 10 });
     const worker = await createWorker('eng');
@@ -312,7 +316,7 @@ export async function performOcrScan(imageSource, onProgress = () => {}) {
     await worker.terminate();
 
     const rawText = ret.data.text || '';
-    const baseConfidence = ret.data.confidence || 75;
+    const baseConfidence = typeof ret.data.confidence === 'number' ? ret.data.confidence : 0;
 
     const { structured, confidenceScore, confidenceLevel } = extractStructuredMrvData(rawText, baseConfidence);
 
@@ -326,20 +330,20 @@ export async function performOcrScan(imageSource, onProgress = () => {}) {
       engine: 'Tesseract.js v5 (Client Engine)',
     };
   } catch (err) {
-    console.warn('Real Tesseract OCR execution notice (falling back to structured OCR parser):', err);
-    // If running in an environment where worker download is blocked or source is text, parse text directly
-    const fallbackText = typeof imageSource === 'string' && !imageSource.startsWith('data:')
-      ? imageSource
-      : SAMPLE_OCR_DOCUMENTS[0].rawText;
-
-    const { structured, confidenceScore, confidenceLevel } = extractStructuredMrvData(fallbackText, 86);
-    return {
-      rawText: fallbackText,
-      structuredData: structured,
-      confidenceScore,
-      confidenceLevel,
-      engine: 'Tesseract.js Fallback Engine',
-    };
+    console.warn('Real Tesseract OCR execution notice:', err);
+    // If imageSource is a string of text (e.g. sample raw text), parse it directly
+    if (typeof imageSource === 'string' && !imageSource.startsWith('data:') && !imageSource.startsWith('blob:')) {
+      const { structured, confidenceScore, confidenceLevel } = extractStructuredMrvData(imageSource, 85);
+      return {
+        rawText: imageSource,
+        structuredData: structured,
+        confidenceScore,
+        confidenceLevel,
+        engine: 'OCR Text Extraction Engine',
+      };
+    }
+    // Otherwise throw error so the UI handles it cleanly and does not fabricate a fake scan
+    throw new Error(err.message || 'Failed to process document with OCR engine.');
   }
 }
 

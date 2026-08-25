@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { createProject, projectTypes, indianStates } from './projectsService';
+import { createProject, saveProject, projectTypes, indianStates } from './projectsService';
 import { calculatePolygonAreaHa, calculatePolygonPerimeterKm } from '../../utils/geoUtils';
 import { ROUTES } from '../../utils/constants';
 
@@ -28,10 +29,48 @@ const INDIAN_LOCATION_PRESETS = [
   { name: 'Visakhapatnam Coast, Andhra Pradesh', state: 'Andhra Pradesh', lat: 17.6868, lng: 83.2185 },
 ];
 
+const INITIAL_FORM_STATE = {
+  // Step 1: Info
+  name: '',
+  type: '',
+  organization: '',
+  startDate: '',
+  description: '',
+  
+  // Step 2: Location
+  location: '',
+  state: '',
+  area: '',
+  lat: null,
+  lng: null,
+  perimeter: 0,
+  boundaryVertices: [],
+  geoJsonBoundary: null,
+  
+  // Step 3: Restoration
+  treeDensity: '',
+  targetPlants: '',
+  species: '',
+  estCO2e: '',
+  socBaseline: '',
+  
+  // Step 4: Community
+  communityName: '',
+  communityContact: '',
+  revenueShare: '',
+  localJobs: '',
+  
+  // Step 5: Documents
+  crzClearance: '',
+  pddDoc: '',
+  consentDeed: '',
+};
+
 export default function CreateProjectPage() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [submittedProject, setSubmittedProject] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [stepError, setStepError] = useState('');
 
   // Step 2 Map Mode: 'DRAW' | 'MARKER'
@@ -42,70 +81,19 @@ export default function CreateProjectPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
-  // Form State
-  const [formData, setFormData] = useState(() => {
-    const initLat = 16.9902;
-    const initLng = 73.3120;
-    const scale = 0.009;
-    const initVertices = [
-      [initLat + scale * 0.8, initLng - scale * 0.9],
-      [initLat + scale * 0.9, initLng + scale * 0.7],
-      [initLat - scale * 0.3, initLng + scale * 1.1],
-      [initLat - scale * 0.9, initLng - scale * 0.2],
-      [initLat - scale * 0.5, initLng - scale * 0.9],
-    ];
-    return {
-      // Step 1: Info
-      name: '',
-      type: 'Mangrove Restoration',
-      organization: 'EcoTrust India',
-      startDate: new Date().toISOString().split('T')[0],
-      description: '',
-      
-      // Step 2: Location
-      location: 'Ratnagiri, Maharashtra',
-      state: 'Maharashtra',
-      area: 145.2,
-      lat: initLat,
-      lng: initLng,
-      perimeter: 4.8,
-      boundaryVertices: initVertices,
-      geoJsonBoundary: {
-        type: 'Feature',
-        properties: { name: 'Ratnagiri Boundary' },
-        geometry: {
-          type: 'Polygon',
-          coordinates: [
-            initVertices.map(([la, ln]) => [ln, la]).concat([[initVertices[0][1], initVertices[0][0]]]),
-          ],
-        },
-      },
-      
-      // Step 3: Restoration
-      treeDensity: 1800,
-      targetPlants: 260000,
-      species: 'Avicennia marina, Rhizophora mucronata',
-      estCO2e: 18500,
-      socBaseline: 2.8,
-      
-      // Step 4: Community
-      communityName: 'Ratnagiri Coastal Fisherfolk Co-operative',
-      communityContact: 'Suresh Patil (+91 98201 54321)',
-      revenueShare: 35,
-      localJobs: 120,
-      
-      // Step 5: Documents
-      crzClearance: 'CRZ-Clearance-MH-2026.pdf',
-      pddDoc: 'Project-Design-Doc-Draft-v1.pdf',
-      consentDeed: 'Gram-Panchayat-Resolution-2026.pdf',
-    };
-  });
+  // Fresh empty form state for new project
+  const [formData, setFormData] = useState(INITIAL_FORM_STATE);
 
   const mapContainerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const layerGroupRef = useRef(null);
   const searchTimeoutRef = useRef(null);
   const searchContainerRef = useRef(null);
+
+  // File upload input refs for Step 5
+  const crzInputRef = useRef(null);
+  const pddInputRef = useRef(null);
+  const consentInputRef = useRef(null);
 
   const totalSteps = 6;
 
@@ -127,6 +115,32 @@ export default function CreateProjectPage() {
       }
       return updated;
     });
+  };
+
+  // Handle native file selection and validation for Step 5 documents
+  const handleFileUpload = (field, e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Reset input value so re-selecting the same file fires onChange
+    e.target.value = '';
+
+    const allowedExtensions = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'];
+    const ext = file.name.split('.').pop().toLowerCase();
+    const maxSizeBytes = 25 * 1024 * 1024; // 25 MB
+
+    if (!allowedExtensions.includes(ext)) {
+      setStepError(`Invalid file format (.${ext}). Accepted formats: PDF, DOC, DOCX, JPG, PNG.`);
+      return;
+    }
+
+    if (file.size > maxSizeBytes) {
+      setStepError(`File size (${(file.size / (1024 * 1024)).toFixed(1)}MB) exceeds maximum 25MB limit.`);
+      return;
+    }
+
+    setStepError('');
+    handleInputChange(field, file.name);
   };
 
   // Close search dropdown on click outside
@@ -299,12 +313,13 @@ export default function CreateProjectPage() {
       mapInstanceRef.current = null;
     }
 
-    const initialLat = Number(formData.lat) || 16.9902;
-    const initialLng = Number(formData.lng) || 73.3120;
+    const initialLat = formData.lat != null ? Number(formData.lat) : 19.0760;
+    const initialLng = formData.lng != null ? Number(formData.lng) : 72.8777;
+    const initialZoom = formData.lat != null ? 13 : 5;
 
     const map = L.map(mapContainerRef.current, {
       center: [initialLat, initialLng],
-      zoom: 13,
+      zoom: initialZoom,
       minZoom: 4,
       maxZoom: 18,
       zoomControl: false,
@@ -412,8 +427,6 @@ export default function CreateProjectPage() {
 
     layerGroup.clearLayers();
 
-    const curLat = Number(formData.lat) || 16.9902;
-    const curLng = Number(formData.lng) || 73.3120;
     const vertices = formData.boundaryVertices || [];
 
     // 1. Render Boundary Polygon
@@ -448,72 +461,152 @@ export default function CreateProjectPage() {
     });
 
     // 3. Render Center / Project Marker
-    const markerIcon = L.divIcon({
-      className: 'custom-project-pin',
-      html: `
-        <div style="
-          width: 24px;
-          height: 24px;
-          background: #ba1a1a;
-          border: 2.5px solid #ffffff;
-          border-radius: 50%;
-          box-shadow: 0 3px 10px rgba(0,0,0,0.4);
-          cursor: grab;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        ">
-          <div style="width: 6px; height: 6px; background: #ffffff; border-radius: 50%;"></div>
+    if (formData.lat != null && formData.lng != null) {
+      const curLat = Number(formData.lat);
+      const curLng = Number(formData.lng);
+      const markerIcon = L.divIcon({
+        className: 'custom-project-pin',
+        html: `
+          <div style="
+            width: 24px;
+            height: 24px;
+            background: #ba1a1a;
+            border: 2.5px solid #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          ">
+            <div style="width: 6px; height: 6px; background: #ffffff; border-radius: 50%;"></div>
+          </div>
+        `,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+      });
+
+      const centerMarker = L.marker([curLat, curLng], { icon: markerIcon, draggable: true }).addTo(layerGroup);
+      
+      centerMarker.bindPopup(`
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px;">
+          <strong style="color: #006a6a;">${formData.location || 'Project Location'}</strong><br/>
+          Lat: ${curLat}°N, Lng: ${curLng}°E<br/>
+          <span style="color: #64748b;">(Drag to reposition marker)</span>
         </div>
-      `,
-      iconSize: [24, 24],
-      iconAnchor: [12, 12],
-    });
+      `);
 
-    const centerMarker = L.marker([curLat, curLng], { icon: markerIcon, draggable: true }).addTo(layerGroup);
-    
-    centerMarker.bindPopup(`
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px;">
-        <strong style="color: #006a6a;">${formData.location}</strong><br/>
-        Lat: ${curLat}°N, Lng: ${curLng}°E<br/>
-        <span style="color: #64748b;">(Drag to reposition marker)</span>
-      </div>
-    `);
-
-    centerMarker.on('dragend', (e) => {
-      const newPos = e.target.getLatLng();
-      const nLat = parseFloat(newPos.lat.toFixed(5));
-      const nLng = parseFloat(newPos.lng.toFixed(5));
-      setFormData((prev) => ({
-        ...prev,
-        lat: nLat,
-        lng: nLng,
-      }));
-      reverseGeocode(nLat, nLng);
-    });
+      centerMarker.on('dragend', (e) => {
+        const newPos = e.target.getLatLng();
+        const nLat = parseFloat(newPos.lat.toFixed(5));
+        const nLng = parseFloat(newPos.lng.toFixed(5));
+        setFormData((prev) => ({
+          ...prev,
+          lat: nLat,
+          lng: nLng,
+        }));
+        reverseGeocode(nLat, nLng);
+      });
+    }
   }, [currentStep, formData.lat, formData.lng, formData.boundaryVertices, formData.area, formData.perimeter]);
+
+  const validateStep = (step) => {
+    // Step 1: Project Information
+    if (step === 1) {
+      if (!formData.name?.trim()) {
+        return 'Please enter the Project Name.';
+      }
+      if (!formData.type) {
+        return 'Please select a Restoration Type.';
+      }
+      if (!formData.organization?.trim()) {
+        return 'Please enter the Implementing Organization.';
+      }
+      if (!formData.startDate) {
+        return 'Please select a Start Date.';
+      }
+      if (!formData.description?.trim()) {
+        return 'Please provide a Project Description.';
+      }
+    }
+
+    // Step 2: Location & Boundary
+    if (step === 2) {
+      if (!formData.location?.trim()) {
+        return 'Please search or specify a Project Location.';
+      }
+      if (!formData.state) {
+        return 'Please select a State.';
+      }
+      if (formData.lat == null || formData.lng == null || isNaN(formData.lat) || isNaN(formData.lng)) {
+        return 'Please set a valid geospatial location marker on the map.';
+      }
+      if (!formData.area || Number(formData.area) <= 0) {
+        return 'Please draw or specify a valid project boundary area (> 0 ha).';
+      }
+      if (!formData.boundaryVertices || formData.boundaryVertices.length < 3) {
+        return 'Please complete the project boundary polygon with at least 3 vertices on the map.';
+      }
+      if (!formData.estCO2e || Number(formData.estCO2e) <= 0) {
+        return 'Estimated CO2e sequestration must be greater than 0.';
+      }
+    }
+
+    // Step 3: Restoration & Ecological Metrics
+    if (step === 3) {
+      if (formData.treeDensity === '' || formData.treeDensity == null || Number(formData.treeDensity) <= 0) {
+        return 'Please specify a valid Tree Planting Density (> 0 stems/ha).';
+      }
+      if (formData.targetPlants === '' || formData.targetPlants == null || Number(formData.targetPlants) <= 0) {
+        return 'Please specify Total Seedlings to Plant (> 0).';
+      }
+      if (!formData.species?.trim()) {
+        return 'Please specify Native Plant Species.';
+      }
+      if (formData.socBaseline === '' || formData.socBaseline == null || Number(formData.socBaseline) <= 0) {
+        return 'Please enter Baseline Soil Organic Carbon (SOC %).';
+      }
+    }
+
+    // Step 4: Community & Social Safeguards
+    if (step === 4) {
+      if (!formData.communityName?.trim()) {
+        return 'Please enter the Panchayat or Community Council Name.';
+      }
+      if (!formData.communityContact?.trim()) {
+        return 'Please enter the Community Representative Contact.';
+      }
+      if (formData.revenueShare === '' || formData.revenueShare == null || Number(formData.revenueShare) <= 0) {
+        return 'Please enter the Carbon Revenue Community Share (%).';
+      }
+      if (formData.localJobs === '' || formData.localJobs == null || Number(formData.localJobs) <= 0) {
+        return 'Please enter the number of Direct Local Jobs Created.';
+      }
+    }
+
+    // Step 5: Clearances & Documentation
+    if (step === 5) {
+      if (!formData.crzClearance) {
+        return 'Please attach the CRZ & Forest Department Clearance document.';
+      }
+      if (!formData.pddDoc) {
+        return 'Please attach the Project Design Document (PDD).';
+      }
+      if (!formData.consentDeed) {
+        return 'Please attach the Gram Panchayat FPIC resolution document.';
+      }
+    }
+
+    return null;
+  };
 
   const handleNext = () => {
     setStepError('');
 
-    // Step 1 Validation
-    if (currentStep === 1) {
-      if (!formData.name.trim()) {
-        setStepError('Please provide a Project Name before proceeding.');
-        return;
-      }
-    }
-
-    // Step 2 Validation
-    if (currentStep === 2) {
-      if (!formData.lat || !formData.lng || isNaN(formData.lat) || isNaN(formData.lng)) {
-        setStepError('Please set a valid geospatial location marker on the map.');
-        return;
-      }
-      if (!formData.area || formData.area <= 0) {
-        setStepError('Please draw or specify a valid project boundary area (ha).');
-        return;
-      }
+    const error = validateStep(currentStep);
+    if (error) {
+      setStepError(error);
+      return;
     }
 
     if (currentStep < totalSteps) {
@@ -528,10 +621,36 @@ export default function CreateProjectPage() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const newPrj = createProject(formData);
-    setSubmittedProject(newPrj);
+    if (isSubmitting) return;
+
+    // Validate all preceding steps before final submit
+    for (let s = 1; s <= 5; s++) {
+      const error = validateStep(s);
+      if (error) {
+        setCurrentStep(s);
+        setStepError(error);
+        return;
+      }
+    }
+
+    try {
+      setIsSubmitting(true);
+      setStepError('');
+      const newPrj = await saveProject(formData);
+      setSubmittedProject(newPrj);
+    } catch (err) {
+      console.error('Project creation error:', err);
+      try {
+        const localPrj = createProject(formData);
+        setSubmittedProject(localPrj);
+      } catch (fallbackErr) {
+        setStepError(err.message || 'Failed to submit project. Please verify inputs and try again.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -660,6 +779,7 @@ export default function CreateProjectPage() {
                         onChange={(e) => handleInputChange('type', e.target.value)}
                         className="w-full px-4 py-2.5 bg-surface rounded-xl font-body-md text-on-surface border border-outline-variant/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm cursor-pointer"
                       >
+                        <option value="">Select Restoration Type...</option>
                         {projectTypes.map((t) => (
                           <option key={t} value={t}>
                             {t}
@@ -824,15 +944,19 @@ export default function CreateProjectPage() {
                       <div className="flex justify-between items-center text-xs">
                         <span className="font-label-md text-on-surface-variant">TOTAL AREA</span>
                         <span className="font-mono-data text-primary font-bold text-sm">
-                          {formData.area} ha
+                          {formData.area ? `${formData.area} ha` : '—'}
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-xs">
                         <span className="font-label-md text-on-surface-variant">PERIMETER</span>
-                        <span className="font-mono-data text-on-surface">{formData.perimeter || 4.8} km</span>
+                        <span className="font-mono-data text-on-surface">
+                          {formData.perimeter ? `${formData.perimeter} km` : '—'}
+                        </span>
                       </div>
                       <div className="mt-1 pt-1.5 border-t border-outline-variant/20 text-[10px] font-mono-data text-on-surface-variant text-right">
-                        {Number(formData.lat).toFixed(4)}°N, {Number(formData.lng).toFixed(4)}°E
+                        {formData.lat != null && formData.lng != null
+                          ? `${Number(formData.lat).toFixed(4)}°N, ${Number(formData.lng).toFixed(4)}°E`
+                          : 'No marker placed'}
                       </div>
                     </div>
                   </div>
@@ -846,6 +970,7 @@ export default function CreateProjectPage() {
                         onChange={(e) => handleInputChange('state', e.target.value)}
                         className="w-full mt-1 px-3 py-2 bg-surface rounded-xl border border-outline-variant/50 text-xs font-title-md cursor-pointer"
                       >
+                        <option value="">Select State...</option>
                         {indianStates.map((st) => (
                           <option key={st} value={st}>
                             {st}
@@ -859,6 +984,7 @@ export default function CreateProjectPage() {
                         type="number"
                         value={formData.area}
                         onChange={(e) => handleInputChange('area', parseFloat(e.target.value) || 0)}
+                        placeholder="0.0"
                         className="w-full mt-1 px-3 py-2 bg-surface rounded-xl border border-outline-variant/50 text-xs font-mono-data"
                       />
                     </div>
@@ -868,6 +994,7 @@ export default function CreateProjectPage() {
                         type="number"
                         value={formData.estCO2e}
                         onChange={(e) => handleInputChange('estCO2e', parseFloat(e.target.value) || 0)}
+                        placeholder="0"
                         className="w-full mt-1 px-3 py-2 bg-surface rounded-xl border border-outline-variant/50 text-xs font-mono-data text-primary font-bold"
                       />
                     </div>
@@ -895,7 +1022,8 @@ export default function CreateProjectPage() {
                       <input
                         type="number"
                         value={formData.treeDensity}
-                        onChange={(e) => handleInputChange('treeDensity', parseInt(e.target.value) || 0)}
+                        onChange={(e) => handleInputChange('treeDensity', parseInt(e.target.value) || '')}
+                        placeholder="e.g. 1800"
                         className="px-4 py-2.5 bg-surface rounded-xl font-mono-data text-on-surface border border-outline-variant/50 text-sm"
                       />
                     </div>
@@ -907,7 +1035,8 @@ export default function CreateProjectPage() {
                       <input
                         type="number"
                         value={formData.targetPlants}
-                        onChange={(e) => handleInputChange('targetPlants', parseInt(e.target.value) || 0)}
+                        onChange={(e) => handleInputChange('targetPlants', parseInt(e.target.value) || '')}
+                        placeholder="e.g. 260000"
                         className="px-4 py-2.5 bg-surface rounded-xl font-mono-data text-on-surface border border-outline-variant/50 text-sm"
                       />
                     </div>
@@ -933,7 +1062,8 @@ export default function CreateProjectPage() {
                         type="number"
                         step="0.1"
                         value={formData.socBaseline}
-                        onChange={(e) => handleInputChange('socBaseline', parseFloat(e.target.value) || 0)}
+                        onChange={(e) => handleInputChange('socBaseline', parseFloat(e.target.value) || '')}
+                        placeholder="e.g. 2.8"
                         className="px-4 py-2.5 bg-surface rounded-xl font-mono-data text-on-surface border border-outline-variant/50 text-sm"
                       />
                     </div>
@@ -974,6 +1104,7 @@ export default function CreateProjectPage() {
                         type="text"
                         value={formData.communityName}
                         onChange={(e) => handleInputChange('communityName', e.target.value)}
+                        placeholder="e.g. Ratnagiri Coastal Fisherfolk Co-operative"
                         className="px-4 py-2.5 bg-surface rounded-xl font-body-md text-on-surface border border-outline-variant/50 text-sm"
                       />
                     </div>
@@ -986,6 +1117,7 @@ export default function CreateProjectPage() {
                         type="text"
                         value={formData.communityContact}
                         onChange={(e) => handleInputChange('communityContact', e.target.value)}
+                        placeholder="e.g. Suresh Patil (+91 98201 54321)"
                         className="px-4 py-2.5 bg-surface rounded-xl font-body-md text-on-surface border border-outline-variant/50 text-sm"
                       />
                     </div>
@@ -997,7 +1129,8 @@ export default function CreateProjectPage() {
                       <input
                         type="number"
                         value={formData.revenueShare}
-                        onChange={(e) => handleInputChange('revenueShare', parseInt(e.target.value) || 0)}
+                        onChange={(e) => handleInputChange('revenueShare', parseInt(e.target.value) || '')}
+                        placeholder="35"
                         className="px-4 py-2.5 bg-surface rounded-xl font-mono-data text-primary font-bold border border-outline-variant/50 text-sm"
                       />
                     </div>
@@ -1009,7 +1142,8 @@ export default function CreateProjectPage() {
                       <input
                         type="number"
                         value={formData.localJobs}
-                        onChange={(e) => handleInputChange('localJobs', parseInt(e.target.value) || 0)}
+                        onChange={(e) => handleInputChange('localJobs', parseInt(e.target.value) || '')}
+                        placeholder="120"
                         className="px-4 py-2.5 bg-surface rounded-xl font-mono-data text-on-surface border border-outline-variant/50 text-sm"
                       />
                     </div>
@@ -1030,61 +1164,123 @@ export default function CreateProjectPage() {
 
                 <div className="bg-surface-container-lowest rounded-2xl shadow-sm p-6 sm:p-8 flex flex-col gap-5 border border-outline-variant/30">
                   <div className="space-y-4">
-                    <div className="p-4 rounded-xl border border-dashed border-outline-variant bg-surface flex items-center justify-between">
+                    {/* Hidden Native File Inputs */}
+                    <input
+                      type="file"
+                      ref={crzInputRef}
+                      className="hidden"
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                      onChange={(e) => handleFileUpload('crzClearance', e)}
+                    />
+                    <input
+                      type="file"
+                      ref={pddInputRef}
+                      className="hidden"
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                      onChange={(e) => handleFileUpload('pddDoc', e)}
+                    />
+                    <input
+                      type="file"
+                      ref={consentInputRef}
+                      className="hidden"
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                      onChange={(e) => handleFileUpload('consentDeed', e)}
+                    />
+
+                    {/* Card 1: CRZ Clearance */}
+                    <div
+                      onClick={() => crzInputRef.current?.click()}
+                      className="p-4 rounded-xl border border-dashed border-outline-variant bg-surface flex items-center justify-between cursor-pointer hover:border-primary/50 transition-colors"
+                    >
                       <div className="flex items-center gap-3">
                         <span className="material-symbols-outlined text-primary text-[28px]">
                           description
                         </span>
                         <div>
                           <div className="font-title-md text-sm text-on-surface">
-                            CRZ & Forest Department Clearance
+                            CRZ & Forest Department Clearance <span className="text-error">*</span>
                           </div>
                           <div className="text-xs font-mono-data text-on-surface-variant">
-                            {formData.crzClearance} (Uploaded)
+                            {formData.crzClearance ? `${formData.crzClearance} (Uploaded)` : 'Click to attach / upload clearance'}
                           </div>
                         </div>
                       </div>
-                      <span className="text-xs font-mono-data text-secondary bg-[#e8f5e9] px-2.5 py-1 rounded">
-                        Attached
-                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          crzInputRef.current?.click();
+                        }}
+                        className={`text-xs font-mono-data px-2.5 py-1 rounded transition-colors cursor-pointer ${
+                          formData.crzClearance ? 'text-secondary bg-[#e8f5e9]' : 'text-on-surface-variant bg-surface-container hover:bg-surface-container-high'
+                        }`}
+                      >
+                        {formData.crzClearance ? 'Attached' : 'Attach'}
+                      </button>
                     </div>
 
-                    <div className="p-4 rounded-xl border border-dashed border-outline-variant bg-surface flex items-center justify-between">
+                    {/* Card 2: PDD */}
+                    <div
+                      onClick={() => pddInputRef.current?.click()}
+                      className="p-4 rounded-xl border border-dashed border-outline-variant bg-surface flex items-center justify-between cursor-pointer hover:border-primary/50 transition-colors"
+                    >
                       <div className="flex items-center gap-3">
                         <span className="material-symbols-outlined text-primary text-[28px]">
                           picture_as_pdf
                         </span>
                         <div>
                           <div className="font-title-md text-sm text-on-surface">
-                            Project Design Document (PDD)
+                            Project Design Document (PDD) <span className="text-error">*</span>
                           </div>
                           <div className="text-xs font-mono-data text-on-surface-variant">
-                            {formData.pddDoc} (Uploaded)
+                            {formData.pddDoc ? `${formData.pddDoc} (Uploaded)` : 'Click to attach / upload PDD document'}
                           </div>
                         </div>
                       </div>
-                      <span className="text-xs font-mono-data text-secondary bg-[#e8f5e9] px-2.5 py-1 rounded">
-                        Attached
-                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          pddInputRef.current?.click();
+                        }}
+                        className={`text-xs font-mono-data px-2.5 py-1 rounded transition-colors cursor-pointer ${
+                          formData.pddDoc ? 'text-secondary bg-[#e8f5e9]' : 'text-on-surface-variant bg-surface-container hover:bg-surface-container-high'
+                        }`}
+                      >
+                        {formData.pddDoc ? 'Attached' : 'Attach'}
+                      </button>
                     </div>
 
-                    <div className="p-4 rounded-xl border border-dashed border-outline-variant bg-surface flex items-center justify-between">
+                    {/* Card 3: FPIC Consent Deed */}
+                    <div
+                      onClick={() => consentInputRef.current?.click()}
+                      className="p-4 rounded-xl border border-dashed border-outline-variant bg-surface flex items-center justify-between cursor-pointer hover:border-primary/50 transition-colors"
+                    >
                       <div className="flex items-center gap-3">
                         <span className="material-symbols-outlined text-primary text-[28px]">
                           approval
                         </span>
                         <div>
                           <div className="font-title-md text-sm text-on-surface">
-                            Gram Panchayat Free & Prior Informed Consent (FPIC)
+                            Gram Panchayat Free & Prior Informed Consent (FPIC) <span className="text-error">*</span>
                           </div>
                           <div className="text-xs font-mono-data text-on-surface-variant">
-                            {formData.consentDeed} (Uploaded)
+                            {formData.consentDeed ? `${formData.consentDeed} (Uploaded)` : 'Click to attach / upload FPIC resolution'}
                           </div>
                         </div>
                       </div>
-                      <span className="text-xs font-mono-data text-secondary bg-[#e8f5e9] px-2.5 py-1 rounded">
-                        Attached
-                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          consentInputRef.current?.click();
+                        }}
+                        className={`text-xs font-mono-data px-2.5 py-1 rounded transition-colors cursor-pointer ${
+                          formData.consentDeed ? 'text-secondary bg-[#e8f5e9]' : 'text-on-surface-variant bg-surface-container hover:bg-surface-container-high'
+                        }`}
+                      >
+                        {formData.consentDeed ? 'Attached' : 'Attach'}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1108,7 +1304,7 @@ export default function CreateProjectPage() {
                         Project Name
                       </div>
                       <div className="font-title-md text-primary font-semibold">
-                        {formData.name || 'Maharashtra Mangrove Restoration'}
+                        {formData.name || '—'}
                       </div>
                     </div>
 
@@ -1116,7 +1312,7 @@ export default function CreateProjectPage() {
                       <div className="text-xs font-label-md text-on-surface-variant uppercase mb-1">
                         Restoration Type
                       </div>
-                      <div className="font-title-md text-on-surface font-semibold">{formData.type}</div>
+                      <div className="font-title-md text-on-surface font-semibold">{formData.type || '—'}</div>
                     </div>
 
                     <div className="p-4 bg-surface rounded-xl border border-outline-variant/30">
@@ -1124,7 +1320,7 @@ export default function CreateProjectPage() {
                         Location & Area
                       </div>
                       <div className="font-title-md text-on-surface">
-                        {formData.location} • <strong className="font-mono-data">{formData.area} ha</strong>
+                        {formData.location ? `${formData.location} • ` : ''}<strong className="font-mono-data">{formData.area ? `${formData.area} ha` : '—'}</strong>
                       </div>
                     </div>
 
@@ -1133,7 +1329,7 @@ export default function CreateProjectPage() {
                         Est. Sequestration
                       </div>
                       <div className="font-headline-md text-primary font-bold">
-                        {formData.estCO2e} <span className="text-xs font-normal">tCO2e</span>
+                        {formData.estCO2e ? `${formData.estCO2e} ` : '0 '}<span className="text-xs font-normal">tCO2e</span>
                       </div>
                     </div>
                   </div>
@@ -1180,10 +1376,11 @@ export default function CreateProjectPage() {
                 <button
                   type="button"
                   onClick={handleSubmit}
-                  className="px-8 py-2.5 rounded-xl font-title-md bg-secondary text-white hover:bg-[#14521b] transition-all flex items-center gap-2 text-sm shadow-sm ml-auto"
+                  disabled={isSubmitting}
+                  className="px-8 py-2.5 rounded-xl font-title-md bg-secondary text-white hover:bg-[#14521b] transition-all flex items-center gap-2 text-sm shadow-sm ml-auto disabled:opacity-50 cursor-pointer"
                 >
-                  <span>Submit Registration</span>
-                  <span className="material-symbols-outlined text-[18px]">verified</span>
+                  <span>{isSubmitting ? 'Registering...' : 'Submit Registration'}</span>
+                  <span className="material-symbols-outlined text-[18px]">{isSubmitting ? 'sync' : 'verified'}</span>
                 </button>
               )}
             </div>
@@ -1191,41 +1388,44 @@ export default function CreateProjectPage() {
         </div>
       </div>
 
-      {/* Success Dialog Overlay */}
-      {submittedProject && (
-        <div className="fixed inset-0 bg-surface/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-surface-container-lowest p-8 sm:p-10 rounded-2xl shadow-xl max-w-md w-full text-center flex flex-col items-center border border-outline-variant/30">
-            <div className="w-20 h-20 bg-secondary-container rounded-full flex items-center justify-center mb-6">
+      {/* Success Dialog Overlay rendered at document.body for robust centering */}
+      {submittedProject && createPortal(
+        <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-surface-container-lowest p-6 sm:p-8 md:p-10 rounded-2xl shadow-2xl w-full max-w-lg min-w-[320px] sm:min-w-[440px] text-center flex flex-col items-center border border-outline-variant/30 my-auto relative">
+            <div className="w-20 h-20 bg-secondary-container rounded-full flex items-center justify-center mb-6 shrink-0">
               <span className="material-symbols-outlined text-[40px] text-on-secondary-container">
                 check_circle
               </span>
             </div>
-            <h2 className="font-headline-md text-on-surface mb-2">Project Registered</h2>
-            <p className="font-body-md text-on-surface-variant mb-6 text-sm">
+            <h2 className="font-headline-md text-on-surface mb-2 font-bold">Project Registered</h2>
+            <p className="font-body-md text-on-surface-variant mb-6 text-sm text-center w-full leading-relaxed px-2">
               Your restoration project has been successfully submitted to the registry pending initial verification.
             </p>
             <div className="bg-surface p-4 rounded-xl w-full mb-6 border border-outline-variant/30">
-              <div className="font-label-md text-on-surface-variant mb-1 text-xs">REGISTRY ID</div>
+              <div className="font-label-md text-on-surface-variant mb-1 text-xs uppercase tracking-wider">REGISTRY ID</div>
               <div className="font-mono-data text-primary text-lg font-bold tracking-wider">
-                {submittedProject.id}
+                {submittedProject.id || submittedProject.project_code}
               </div>
             </div>
-            <div className="flex gap-3 w-full">
+            <div className="flex flex-col sm:flex-row gap-3 w-full">
               <button
+                type="button"
                 onClick={() => navigate(ROUTES.ADMIN_PROJECTS || '/admin/projects')}
-                className="flex-1 py-3 rounded-xl bg-primary text-on-primary font-title-md text-sm hover:bg-primary-container transition-colors shadow-sm"
+                className="flex-1 py-3 px-4 rounded-xl bg-primary text-on-primary font-title-md text-sm hover:bg-primary-container transition-colors shadow-sm cursor-pointer"
               >
                 View Projects
               </button>
               <button
+                type="button"
                 onClick={() => navigate(ROUTES.ADMIN_DASHBOARD || '/admin/dashboard')}
-                className="flex-1 py-3 rounded-xl border border-primary text-primary font-title-md text-sm hover:bg-primary/5 transition-colors"
+                className="flex-1 py-3 px-4 rounded-xl border border-primary text-primary font-title-md text-sm hover:bg-primary/5 transition-colors cursor-pointer"
               >
                 Dashboard
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

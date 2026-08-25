@@ -52,8 +52,8 @@ export default function OnboardingStatusPage() {
   }, [initialApp]);
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto space-y-6">
+    <div className="min-h-screen w-full bg-background py-8 px-4 sm:px-6 lg:px-8 flex flex-col justify-start">
+      <div style={{ width: 'min(100%, 48rem)', marginInline: 'auto' }} className="space-y-6">
         {/* Top bar */}
         <div className="flex items-center justify-between pb-4 border-b border-outline-variant/30">
           <Link to={ROUTES.LOGIN} className="flex items-center gap-2 text-xs font-bold text-on-surface-variant hover:text-primary transition-colors">
@@ -66,14 +66,17 @@ export default function OnboardingStatusPage() {
         </div>
 
         {/* Header */}
-        <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto">
+        <div className="w-full min-w-0 text-center space-y-2">
+          <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto shrink-0">
             <span className="material-symbols-outlined text-[28px]">track_changes</span>
           </div>
           <h1 className="font-headline-lg text-on-surface text-[24px] md:text-[28px] font-extrabold tracking-tight">
             Application Status Tracker
           </h1>
-          <p className="font-body-md text-on-surface-variant text-xs md:text-sm max-w-md mx-auto">
+          <p
+            style={{ width: 'min(100%, 28rem)', marginInline: 'auto' }}
+            className="font-body-md text-on-surface-variant text-xs md:text-sm text-center leading-relaxed"
+          >
             Enter your official BlueCarbon onboarding application number to verify your compliance review milestone.
           </p>
         </div>
@@ -81,22 +84,25 @@ export default function OnboardingStatusPage() {
         {/* Search Bar */}
         <form 
           onSubmit={(e) => { e.preventDefault(); handleSearch(); }}
-          className="flex gap-2 max-w-md mx-auto"
+          style={{ width: 'min(100%, 28rem)', marginInline: 'auto', display: 'flex' }}
+          className="items-center gap-2"
         >
-          <div className="relative flex-1">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+          <div style={{ flex: '1 1 0%', minWidth: 0 }} className="relative">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
             <input
               type="text"
               placeholder="e.g. APP-2026-8921"
               value={appNumber}
               onChange={(e) => setAppNumber(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-surface border border-outline-variant text-sm font-mono-data text-on-surface focus:outline-none focus:border-primary shadow-sm"
+              style={{ width: '100%', minWidth: 0 }}
+              className="pl-10 pr-4 py-2.5 rounded-xl bg-surface border border-outline-variant text-sm font-mono-data text-on-surface focus:outline-none focus:border-primary shadow-sm"
             />
           </div>
           <button
             type="submit"
             disabled={isLoading}
-            className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-on-primary text-xs font-bold shadow-sm transition-colors"
+            style={{ flex: '0 0 auto', whiteSpace: 'nowrap' }}
+            className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-on-primary text-xs font-bold shadow-sm transition-colors cursor-pointer"
           >
             {isLoading ? 'Checking...' : 'Track'}
           </button>

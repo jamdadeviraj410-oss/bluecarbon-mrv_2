@@ -7,32 +7,53 @@ import {
   saveOcrReview,
 } from '../../services/ocrService';
 
+const EMPTY_FORM_DATA = {
+  projectId: '',
+  date: '',
+  area: '',
+  areaUnit: 'Hectares',
+  species: '',
+  plantCount: '',
+  carbonValue: '',
+  carbonUnit: 'tCO2e',
+  location: '',
+  referenceNumber: '',
+  organization: '',
+  signatory: '',
+};
+
 export default function OcrReviewWorkspace({ projectId = 'PRJ-2023-089' }) {
-  const [selectedDoc, setSelectedDoc] = useState(SAMPLE_OCR_DOCUMENTS[0]);
+  const [selectedDoc, setSelectedDoc] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
   const [scanStatus, setScanStatus] = useState('');
-  const [rawOcrText, setRawOcrText] = useState(SAMPLE_OCR_DOCUMENTS[0].rawText);
-  const [confidenceScore, setConfidenceScore] = useState(SAMPLE_OCR_DOCUMENTS[0].confidence);
-  const [confidenceLevel, setConfidenceLevel] = useState('HIGH');
+  const [rawOcrText, setRawOcrText] = useState('');
+  const [confidenceScore, setConfidenceScore] = useState(null);
+  const [confidenceLevel, setConfidenceLevel] = useState(null);
   const [ocrEngine, setOcrEngine] = useState('Tesseract.js v5');
   const [notification, setNotification] = useState(null);
   const [activeTab, setActiveTab] = useState('structured'); // 'structured' | 'raw' | 'review'
 
-  // Editable structured fields
-  const [formData, setFormData] = useState(() => {
-    const { structured } = extractStructuredMrvData(SAMPLE_OCR_DOCUMENTS[0].rawText, 94.5);
-    return structured;
-  });
+  // Editable structured fields - clean empty state on initial load
+  const [formData, setFormData] = useState(EMPTY_FORM_DATA);
 
   const [auditorName, setAuditorName] = useState('Dr. A. Sharma (Auditor)');
   const [savedRecords, setSavedRecords] = useState([]);
   const fileInputRef = useRef(null);
 
+  const hasProcessedResult = Boolean(selectedDoc && rawOcrText);
+
   const handleSelectSample = (sample) => {
+    // Clear previous state immediately before setting new selection
     setSelectedDoc(sample);
+    setRawOcrText('');
+    setFormData(EMPTY_FORM_DATA);
+    setConfidenceScore(null);
+    setConfidenceLevel(null);
+
+    // Extract structured data from selected sample
+    const result = extractStructuredMrvData(sample.rawText, sample.confidence || 85);
     setRawOcrText(sample.rawText);
-    const result = extractStructuredMrvData(sample.rawText, sample.confidence);
     setFormData(result.structured);
     setConfidenceScore(result.confidenceScore);
     setConfidenceLevel(result.confidenceLevel);
@@ -44,6 +65,15 @@ export default function OcrReviewWorkspace({ projectId = 'PRJ-2023-089' }) {
   };
 
   const handleRunOcr = async () => {
+    if (!rawOcrText && !selectedDoc) {
+      setNotification({
+        type: 'error',
+        message: 'No document loaded. Please upload an image or select a sample document first.',
+      });
+      setTimeout(() => setNotification(null), 3500);
+      return;
+    }
+
     setScanning(true);
     setScanProgress(10);
     setScanStatus('Initializing OCR worker & loading neural models...');
@@ -71,6 +101,7 @@ export default function OcrReviewWorkspace({ projectId = 'PRJ-2023-089' }) {
         type: 'error',
         message: 'OCR execution encountered an error. Reverted to previous buffer.',
       });
+      setTimeout(() => setNotification(null), 4000);
     } finally {
       setScanning(false);
     }
@@ -79,6 +110,16 @@ export default function OcrReviewWorkspace({ projectId = 'PRJ-2023-089' }) {
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Reset input so re-selecting same file triggers onChange
+    e.target.value = '';
+
+    // Clear prior state immediately
+    setSelectedDoc(null);
+    setRawOcrText('');
+    setFormData(EMPTY_FORM_DATA);
+    setConfidenceScore(null);
+    setConfidenceLevel(null);
 
     const reader = new FileReader();
     reader.onload = async (event) => {
@@ -115,9 +156,32 @@ export default function OcrReviewWorkspace({ projectId = 'PRJ-2023-089' }) {
         setTimeout(() => setNotification(null), 4000);
       } catch (err) {
         console.error('Custom file scan error:', err);
+        setSelectedDoc(null);
+        setRawOcrText('');
+        setFormData(EMPTY_FORM_DATA);
+        setConfidenceScore(null);
+        setConfidenceLevel(null);
+        setNotification({
+          type: 'error',
+          message: `Failed to process "${file.name}" with OCR engine. Please verify the image file and try again.`,
+        });
+        setTimeout(() => setNotification(null), 4000);
       } finally {
         setScanning(false);
       }
+    };
+    reader.onerror = () => {
+      setSelectedDoc(null);
+      setRawOcrText('');
+      setFormData(EMPTY_FORM_DATA);
+      setConfidenceScore(null);
+      setConfidenceLevel(null);
+      setScanning(false);
+      setNotification({
+        type: 'error',
+        message: `Failed to read file "${file.name}".`,
+      });
+      setTimeout(() => setNotification(null), 4000);
     };
     reader.readAsDataURL(file);
   };
@@ -130,14 +194,16 @@ export default function OcrReviewWorkspace({ projectId = 'PRJ-2023-089' }) {
   };
 
   const handleConfirmAndSave = async () => {
+    if (!hasProcessedResult) return;
+
     try {
       const saved = await saveOcrResult({
         projectId,
         documentType: selectedDoc?.type || 'FIELD_REPORT',
         rawText: rawOcrText,
         structuredData: formData,
-        confidenceScore,
-        confidenceLevel,
+        confidenceScore: confidenceScore || 0,
+        confidenceLevel: confidenceLevel || 'LOW',
         engine: ocrEngine,
       });
 
@@ -223,7 +289,7 @@ export default function OcrReviewWorkspace({ projectId = 'PRJ-2023-089' }) {
               />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="text-xs bg-primary-container text-on-primary hover:bg-primary px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-colors"
+                className="text-xs bg-primary-container text-on-primary hover:bg-primary px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[16px]">upload_file</span>
                 Upload Image
@@ -241,7 +307,7 @@ export default function OcrReviewWorkspace({ projectId = 'PRJ-2023-089' }) {
                   <button
                     key={doc.id}
                     onClick={() => handleSelectSample(doc)}
-                    className={`w-full text-left p-3 rounded-lg border transition-all flex items-start gap-3 ${
+                    className={`w-full text-left p-3 rounded-lg border transition-all flex items-start gap-3 cursor-pointer ${
                       isSelected
                         ? 'border-primary bg-primary-fixed/20 shadow-sm'
                         : 'border-outline-variant/60 hover:border-outline-variant hover:bg-surface-container-low'
@@ -296,9 +362,11 @@ export default function OcrReviewWorkspace({ projectId = 'PRJ-2023-089' }) {
                     ? 'bg-emerald-100 text-emerald-800'
                     : confidenceLevel === 'MEDIUM'
                     ? 'bg-amber-100 text-amber-800'
-                    : 'bg-rose-100 text-rose-800'
+                    : confidenceLevel === 'LOW'
+                    ? 'bg-rose-100 text-rose-800'
+                    : 'bg-surface-container text-on-surface-variant'
                 }`}>
-                  {confidenceLevel} ({confidenceScore}%)
+                  {confidenceLevel ? `${confidenceLevel} (${confidenceScore}%)` : '—'}
                 </span>
               </div>
               <div className="flex justify-between py-1">
@@ -312,8 +380,8 @@ export default function OcrReviewWorkspace({ projectId = 'PRJ-2023-089' }) {
 
             <button
               onClick={handleRunOcr}
-              disabled={scanning}
-              className="w-full mt-2 bg-primary text-on-primary hover:bg-primary-container py-2.5 rounded-lg font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-50"
+              disabled={scanning || !hasProcessedResult}
+              className="w-full mt-2 bg-primary text-on-primary hover:bg-primary-container py-2.5 rounded-lg font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               <span className={`material-symbols-outlined text-[18px] ${scanning ? 'animate-spin' : ''}`}>
                 {scanning ? 'autorenew' : 'play_circle'}
@@ -346,7 +414,7 @@ export default function OcrReviewWorkspace({ projectId = 'PRJ-2023-089' }) {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setActiveTab('structured')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer ${
                     activeTab === 'structured'
                       ? 'bg-primary text-on-primary shadow-sm'
                       : 'text-on-surface-variant hover:bg-surface-container'
@@ -357,7 +425,7 @@ export default function OcrReviewWorkspace({ projectId = 'PRJ-2023-089' }) {
                 </button>
                 <button
                   onClick={() => setActiveTab('raw')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer ${
                     activeTab === 'raw'
                       ? 'bg-primary text-on-primary shadow-sm'
                       : 'text-on-surface-variant hover:bg-surface-container'
@@ -371,13 +439,15 @@ export default function OcrReviewWorkspace({ projectId = 'PRJ-2023-089' }) {
               <div className="flex items-center gap-3">
                 <span className="text-xs text-on-surface-variant">Confidence:</span>
                 <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
-                  confidenceScore >= 90
+                  confidenceScore !== null && confidenceScore >= 90
                     ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                    : confidenceScore >= 60
+                    : confidenceScore !== null && confidenceScore >= 60
                     ? 'bg-amber-50 text-amber-800 border-amber-200'
-                    : 'bg-rose-50 text-rose-800 border-rose-200'
+                    : confidenceScore !== null
+                    ? 'bg-rose-50 text-rose-800 border-rose-200'
+                    : 'bg-surface-container text-on-surface-variant border-outline-variant'
                 }`}>
-                  {confidenceLevel} ({confidenceScore}%)
+                  {confidenceLevel ? `${confidenceLevel} (${confidenceScore}%)` : 'No Document Loaded'}
                 </span>
               </div>
             </div>
@@ -390,7 +460,8 @@ export default function OcrReviewWorkspace({ projectId = 'PRJ-2023-089' }) {
                     <span>Direct text output from OCR buffer:</span>
                     <button
                       onClick={() => navigator.clipboard.writeText(rawOcrText)}
-                      className="text-primary hover:underline flex items-center gap-1"
+                      disabled={!rawOcrText}
+                      className="text-primary hover:underline flex items-center gap-1 disabled:opacity-40 disabled:hover:no-underline cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-[14px]">content_copy</span>
                       Copy Buffer
@@ -398,13 +469,14 @@ export default function OcrReviewWorkspace({ projectId = 'PRJ-2023-089' }) {
                   </div>
                   <textarea
                     value={rawOcrText}
+                    placeholder="No OCR document processed yet. Please upload an image or select a sample document from the left panel to view raw extracted text."
                     onChange={(e) => {
                       setRawOcrText(e.target.value);
-                      const res = extractStructuredMrvData(e.target.value, confidenceScore);
+                      const res = extractStructuredMrvData(e.target.value, confidenceScore || 80);
                       setFormData(res.structured);
                     }}
                     rows={14}
-                    className="w-full font-mono text-xs p-4 bg-gray-900 text-emerald-400 rounded-xl border border-gray-700 focus:ring-2 focus:ring-primary focus:outline-none"
+                    className="w-full font-mono text-xs p-4 bg-gray-900 text-emerald-400 rounded-xl border border-gray-700 focus:ring-2 focus:ring-primary focus:outline-none placeholder:text-gray-500"
                   />
                 </div>
               ) : (
@@ -560,7 +632,8 @@ export default function OcrReviewWorkspace({ projectId = 'PRJ-2023-089' }) {
 
                     <button
                       onClick={handleConfirmAndSave}
-                      className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-6 py-2.5 rounded-lg text-xs flex items-center gap-2 shadow-sm transition-all"
+                      disabled={!hasProcessedResult || scanning}
+                      className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-6 py-2.5 rounded-lg text-xs flex items-center gap-2 shadow-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-[18px]">verified</span>
                       Confirm & Sign-Off OCR Data
