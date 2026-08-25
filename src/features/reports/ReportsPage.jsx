@@ -6,6 +6,7 @@ import {
   getGeneratedReports,
   generateNewReport,
   exportReportsCSV,
+  downloadReportFile,
 } from './reportsService';
 
 export default function ReportsPage() {
@@ -63,12 +64,12 @@ export default function ReportsPage() {
   };
 
   // Handle Generate Report Form Submit
-  const handleGenerateSubmit = (e) => {
+  const handleGenerateSubmit = async (e) => {
     e.preventDefault();
     setIsGenerating(true);
 
-    setTimeout(() => {
-      const generated = generateNewReport({
+    try {
+      const generated = await generateNewReport({
         reportType: formReportType,
         format: formFormat,
         dateRange: dateRange,
@@ -77,7 +78,7 @@ export default function ReportsPage() {
       });
 
       // Update list
-      setReportsList(getGeneratedReports());
+      setReportsList([...getGeneratedReports()]);
       setIsGenerating(false);
       setActiveReportModal(generated);
 
@@ -86,59 +87,15 @@ export default function ReportsPage() {
         message: `Successfully generated "${generated.title}" (${generated.format})`,
       });
       setTimeout(() => setNotification(null), 5000);
-    }, 600);
+    } catch (err) {
+      console.error('Report generation error:', err);
+      setIsGenerating(false);
+    }
   };
 
-  // Handle Single Report Download Simulation
+  // Handle Single Report Download
   const handleDownloadReport = (report) => {
-    const content = `=====================================================
-BLUECARBON MRV REGISTRY — OFFICIAL REPORT
-=====================================================
-Report ID: ${report.id}
-Title: ${report.title}
-Report Type: ${report.type}
-Period: ${report.period}
-Date Generated: ${report.dateGenerated}
-Issuing Authority: ${report.author} (${report.authorRole})
-Cryptographic Hash: ${report.hash}
-Status: ${report.status}
-
------------------------------------------------------
-EXECUTIVE SUMMARY
------------------------------------------------------
-${report.description}
-
------------------------------------------------------
-KEY METRICS
------------------------------------------------------
-Total Restoration Area: ${report.summaryMetrics?.totalArea || '14,200 ha'}
-Total Carbon Sequestered: ${report.summaryMetrics?.totalSequestered || '1,200,000 tCO2e'}
-Verified Carbon Credits: ${report.summaryMetrics?.creditsIssued || '850,000'}
-Projects Monitored: ${report.summaryMetrics?.activeProjects || 142}
-Average Vegetation Survival: ${report.summaryMetrics?.survivalRate || '88.0%'}
-
------------------------------------------------------
-COMPLIANCE METHODOLOGIES
------------------------------------------------------
-${(report.methodologies || []).map((m, i) => `${i + 1}. ${m}`).join('\n')}
-
------------------------------------------------------
-KEY FINDINGS & AUDIT NOTES
------------------------------------------------------
-${(report.keyFindings || []).map((k) => `• ${k}`).join('\n')}
-
------------------------------------------------------
-END OF REPORT — SECURED VIA DISTRIBUTED LEDGER TECHNOLOGY
-=====================================================`;
-
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${report.id}-${report.type.replace(/\s+/g, '_')}.${report.format.toLowerCase() === 'csv' ? 'csv' : 'txt'}`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    downloadReportFile(report);
 
     setNotification({
       type: 'success',

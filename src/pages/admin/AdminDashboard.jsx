@@ -9,6 +9,7 @@ import {
   getRecentActivity, 
   getVerificationQueue 
 } from '../../services/dashboardService';
+import { exportReportsCSV } from '../../features/reports/reportsService';
 
 import StatCard from '../../components/dashboard/StatCard';
 import ProjectMap from '../../components/dashboard/ProjectMap';
@@ -49,6 +50,19 @@ export default function AdminDashboard() {
     };
   }, []);
 
+  const handleExport = () => {
+    const csv = exportReportsCSV();
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `national-mrv-dashboard-${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="flex flex-col w-full px-xl py-lg gap-lg">
       {/* Header Section */}
@@ -63,7 +77,10 @@ export default function AdminDashboard() {
             <span className="font-label-md">Last 12 Months</span>
             <span className="material-symbols-outlined text-[20px]">arrow_drop_down</span>
           </div>
-          <button className="bg-primary hover:bg-primary-container text-on-primary font-label-md px-md py-sm rounded-lg flex items-center gap-sm transition-colors shadow-md">
+          <button
+            onClick={handleExport}
+            className="bg-primary hover:bg-primary-container text-on-primary font-label-md px-md py-sm rounded-lg flex items-center gap-sm transition-colors shadow-md cursor-pointer"
+          >
             <span className="material-symbols-outlined text-[18px]">download</span>
             Export Report
           </button>

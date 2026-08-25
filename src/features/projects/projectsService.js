@@ -55,7 +55,8 @@ export function getProjects(filters = {}) {
   }
 
   if (filters.type && filters.type !== 'All') {
-    result = result.filter((p) => p.type === filters.type);
+    const t = filters.type.toLowerCase();
+    result = result.filter((p) => p.type === filters.type || (p.type && p.type.toLowerCase().includes(t)) || (p.ecosystem && p.ecosystem.toLowerCase().includes(t)));
   }
 
   if (filters.search) {

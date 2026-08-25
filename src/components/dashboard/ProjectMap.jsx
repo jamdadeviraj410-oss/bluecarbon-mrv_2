@@ -1,9 +1,177 @@
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { ROUTES } from '../../utils/constants';
+import { getProjects, fetchProjects } from '../../features/projects/projectsService';
 
 export default function ProjectMap() {
+  const [projectsList, setProjectsList] = useState(() => getProjects());
+  const [activeSite, setActiveSite] = useState(null);
+  const mapContainerRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+
+  // Eagerly fetch latest live projects
+  useEffect(() => {
+    let isMounted = true;
+    fetchProjects().then((data) => {
+      if (isMounted && data && data.length > 0) {
+        setProjectsList(data);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Initialize & update Leaflet interactive map
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+
+    // Destroy existing instance if container re-rendered
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+    }
+
+    const map = L.map(mapContainerRef.current, {
+      center: [19.5, 79.5],
+      zoom: 4.8,
+      minZoom: 4,
+      maxZoom: 12,
+      zoomControl: true,
+      attributionControl: false,
+    });
+
+    mapInstanceRef.current = map;
+
+    // CartoDB Voyager Tiles (Clean maritime & topography styling)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+      subdomains: 'abcd',
+    }).addTo(map);
+
+    // Marker bounds tracker
+    const validMarkers = [];
+
+    projectsList.forEach((project) => {
+      const lat = project.coordinates?.lat || project.latitude;
+      const lng = project.coordinates?.lng || project.longitude;
+
+      if (!lat || !lng || isNaN(lat) || isNaN(lng)) return;
+
+      const normStatus = (project.status || project.dbStatus || 'Pending').toLowerCase();
+      let color = '#f59e0b'; // Pending
+      let statusLabel = 'Pending';
+      let badgeClass = 'background:#fef3c7;color:#b45309;';
+
+      if (normStatus.includes('verif') || normStatus === 'active') {
+        color = '#16a34a'; // Verified
+        statusLabel = 'Verified';
+        badgeClass = 'background:#dcfce7;color:#15803d;';
+      } else if (normStatus.includes('review')) {
+        color = '#006a6a'; // Under Review
+        statusLabel = 'Under Review';
+        badgeClass = 'background:#ccfbf1;color:#0f766e;';
+      } else if (normStatus.includes('reject')) {
+        color = '#dc2626';
+        statusLabel = 'Rejected';
+        badgeClass = 'background:#fee2e2;color:#b91c1c;';
+      }
+
+      // Custom SVG Marker Icon
+      const customIcon = L.divIcon({
+        className: 'custom-project-pin',
+        html: `
+          <div style="
+            width: 22px;
+            height: 22px;
+            background-color: ${color};
+            border: 2.5px solid #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+            cursor: pointer;
+            transition: transform 0.2s ease;
+          " onmouseover="this.style.transform='scale(1.3)'" onmouseout="this.style.transform='scale(1)'"></div>
+        `,
+        iconSize: [22, 22],
+        iconAnchor: [11, 11],
+        popupAnchor: [0, -12],
+      });
+
+      const marker = L.marker([lat, lng], { icon: customIcon }).addTo(map);
+      validMarkers.push([lat, lng]);
+
+      const areaText = project.area ? `${project.area} ha` : 'N/A';
+      const carbonText = project.estCO2e || project.est_co2e ? `${Number(project.estCO2e || project.est_co2e).toLocaleString()} tCO2e` : '';
+
+      const popupContent = `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 4px; min-width: 200px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 4px;">
+            <span style="font-size: 10px; font-weight: 700; font-family: monospace; color: #64748b;">${project.id || project.project_code}</span>
+            <span style="font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 9999px; ${badgeClass}">${statusLabel}</span>
+          </div>
+          <h4 style="margin: 0 0 4px 0; font-size: 13px; font-weight: 700; color: #0f172a;">${project.name}</h4>
+          <p style="margin: 0 0 6px 0; font-size: 11px; color: #475569;">${project.location || project.state || 'India'}</p>
+          <div style="border-top: 1px solid #e2e8f0; padding-top: 6px; font-size: 11px; color: #334155; display:flex; flex-direction:column; gap: 2px;">
+            <div><strong>Ecosystem:</strong> ${project.type || 'Mangrove'}</div>
+            <div><strong>Restoration Area:</strong> ${areaText}</div>
+            ${carbonText ? `<div><strong>Estimated Yield:</strong> ${carbonText}</div>` : ''}
+          </div>
+          <a href="/projects/${project.id || project.project_code}" style="display:inline-block; margin-top: 8px; font-size: 11px; font-weight: 700; color: #006a6a; text-decoration: none;">
+            View Project Details &rarr;
+          </a>
+        </div>
+      `;
+
+      marker.bindPopup(popupContent, {
+        maxWidth: 280,
+        className: 'custom-leaflet-popup',
+      });
+
+      marker.on('mouseover', () => {
+        setActiveSite({
+          name: project.name,
+          lat: Number(lat).toFixed(4),
+          lng: Number(lng).toFixed(4),
+        });
+      });
+
+      marker.on('mouseout', () => {
+        setActiveSite(null);
+      });
+    });
+
+    // Invalidate size to ensure complete canvas tile rendering
+    const timer = setTimeout(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    }, 200);
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    });
+
+    if (mapContainerRef.current) {
+      resizeObserver.observe(mapContainerRef.current);
+    }
+
+    return () => {
+      clearTimeout(timer);
+      resizeObserver.disconnect();
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [projectsList]);
+
   return (
     <div className="lg:col-span-8 bg-surface rounded-2xl border border-outline-variant/30 shadow-sm flex flex-col overflow-hidden">
+      {/* Card Header (Preserved Exactly) */}
       <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-container-lowest border-b border-outline-variant/30">
         <div>
           <h2 className="font-headline-sm text-on-surface text-[18px] font-bold m-0">National Coastal Project Distribution</h2>
@@ -24,46 +192,16 @@ export default function ProjectMap() {
           </Link>
         </div>
       </div>
+
+      {/* Interactive Map Canvas Container */}
       <div className="relative w-full h-[460px] overflow-hidden bg-slate-900">
-        {/* Map Image */}
-        <div
-          className="w-full h-full bg-cover bg-center opacity-85"
-          title="India Coastline, Bay of Bengal & Arabian Sea"
-          style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuDFP2ZKxjWPZy2p8VQLUC-WABJ7EeqQ_3mxsXLua_dM6iXYAqdfwZ58Y5od3LoxfoCGjl9fAYvF44XKqF-ZMO2y_jiO2uo3ExfVkiOkUAwGMizsb2dapPELg8hCUMZvFzIzGyInWekFDkQvRR0yZzpnfPp0_e3fiv3oTu6R2TlYUREX6rbXB7kzfEiyPANNZVTBeSCME22eLl7svQCGTt7_pTQMgz-VoHQP1TbXM3Yon6gkMG7GLV27Iw')" }}
-        ></div>
+        <div ref={mapContainerRef} className="w-full h-full z-10" />
 
-        {/* Overlay Markers */}
-        <Link 
-          to={ROUTES.ADMIN_NATIONAL_MAP}
-          className="absolute top-[30%] left-[65%] w-4 h-4 bg-secondary rounded-full shadow-[0_0_12px_rgba(27,109,36,0.9)] animate-pulse border-2 border-white cursor-pointer"
-          title="Sundarbans West Bengal - 450 ha Verified"
-        ></Link>
-        <Link 
-          to={ROUTES.ADMIN_NATIONAL_MAP}
-          className="absolute top-[45%] left-[55%] w-3.5 h-3.5 bg-amber-500 rounded-full shadow-md border border-white cursor-pointer"
-          title="Bhitarkanika Odisha - 320 ha Pending"
-        ></Link>
-        <Link 
-          to={ROUTES.ADMIN_NATIONAL_MAP}
-          className="absolute top-[60%] left-[45%] w-3.5 h-3.5 bg-secondary rounded-full shadow-md border border-white cursor-pointer"
-          title="Godavari Mangrove Delta AP - Verified"
-        ></Link>
-        <Link 
-          to={ROUTES.ADMIN_NATIONAL_MAP}
-          className="absolute top-[75%] left-[32%] w-4 h-4 bg-primary-fixed-dim rounded-full shadow-md animate-pulse border-2 border-white cursor-pointer"
-          title="Pichavaram Tamil Nadu - 280 ha Under Review"
-        ></Link>
-        <Link 
-          to={ROUTES.ADMIN_NATIONAL_MAP}
-          className="absolute top-[35%] left-[20%] w-3.5 h-3.5 bg-secondary rounded-full shadow-md border border-white cursor-pointer"
-          title="Gulf of Kutch Gujarat - 58,000 ha"
-        ></Link>
-
-        {/* Floating Map Footer */}
-        <div className="absolute bottom-3 left-3 right-3 bg-black/75 backdrop-blur-md rounded-xl p-2.5 border border-white/10 text-white flex items-center justify-between text-xs">
+        {/* Floating Map Footer Bar (Preserved Exactly) */}
+        <div className="absolute bottom-3 left-3 right-3 bg-black/75 backdrop-blur-md rounded-xl p-2.5 border border-white/10 text-white flex items-center justify-between text-xs z-[400] pointer-events-auto">
           <div className="flex items-center gap-2 font-mono-data">
             <span className="w-2 h-2 rounded-full bg-secondary"></span>
-            105 Coastal Restoration Sites Monitored
+            {activeSite ? `${activeSite.name} (${activeSite.lat}° N, ${activeSite.lng}° E)` : `${projectsList.length} Coastal Restoration Sites Monitored`}
           </div>
           <Link
             to={ROUTES.ADMIN_NATIONAL_MAP}

@@ -295,7 +295,7 @@ export default function MrvAnomalyMatrix({ projectId = 'PRJ-2023-089' }) {
       {/* Auditor Resolution Modal */}
       {selectedAnomaly && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-surface-container-lowest rounded-2xl p-6 max-w-lg w-full border border-outline-variant shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-surface-container-lowest rounded-2xl p-6 max-w-lg w-full min-w-[320px] border border-outline-variant shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between pb-3 border-b border-outline-variant">
               <div>
                 <h3 className="font-title-md text-title-md font-bold text-on-surface">

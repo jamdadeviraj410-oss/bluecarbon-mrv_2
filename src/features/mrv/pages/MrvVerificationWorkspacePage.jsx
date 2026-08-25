@@ -212,41 +212,171 @@ export default function MrvVerificationWorkspacePage() {
             {/* Main Data Area */}
             <div className="md:col-span-1 xl:col-span-2 flex flex-col gap-6">
               <Card>
-                <CardHeader
-                  title="Aerial & Drone Survey Analysis"
-                  subtitle="Multispectral imagery and canopy height model metrics"
-                />
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-                  <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20">
-                    <span className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1">Flight Date</span>
-                    <span className="font-mono-data font-semibold text-on-surface text-sm">{workspaceData.droneData.flightDate}</span>
-                  </div>
-                  <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20">
-                    <span className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1">Resolution</span>
-                    <span className="font-mono-data font-semibold text-on-surface text-sm">{workspaceData.droneData.resolution}</span>
-                  </div>
-                  <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20">
-                    <span className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1">Captures</span>
-                    <span className="font-mono-data font-semibold text-on-surface text-sm">{workspaceData.droneData.imageCount}</span>
-                  </div>
-                  <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20">
-                    <span className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1">Coverage</span>
-                    <span className="font-mono-data font-semibold text-secondary text-sm">{workspaceData.droneData.coverage}</span>
-                  </div>
-                </div>
-
-                <div className="p-4 border border-secondary/20 bg-secondary-container/10 rounded-xl flex items-start gap-4">
-                  <div className="p-2.5 bg-secondary text-on-secondary rounded-xl shrink-0">
-                    <span className="material-symbols-outlined text-[20px]">psychology</span>
-                  </div>
+                {activeTab === 'Overview' && (
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-title-md font-bold text-on-surface text-sm m-0">Computer Vision Canopy Check</h4>
-                      <StatusBadge status="Verified" showDot={false} />
+                    <CardHeader
+                      title="Baseline Ecological & Plot Overview"
+                      subtitle="Ground-truth baseline survey and plot distribution"
+                    />
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                      <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20">
+                        <span className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1">Baseline Year</span>
+                        <span className="font-mono-data font-semibold text-on-surface text-sm">2023</span>
+                      </div>
+                      <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20">
+                        <span className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1">Canopy Cover</span>
+                        <span className="font-mono-data font-semibold text-secondary text-sm">76.4%</span>
+                      </div>
+                      <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20">
+                        <span className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1">Mean Height</span>
+                        <span className="font-mono-data font-semibold text-on-surface text-sm">4.8 m</span>
+                      </div>
+                      <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20">
+                        <span className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1">Survival Rate</span>
+                        <span className="font-mono-data font-semibold text-secondary text-sm">94.2%</span>
+                      </div>
                     </div>
-                    <p className="font-body-md text-xs text-on-surface-variant m-0">{workspaceData.aiAnalysis.description}</p>
+
+                    <div className="p-4 border border-secondary/20 bg-secondary-container/10 rounded-xl flex items-start gap-4 mb-4">
+                      <div className="p-2.5 bg-secondary text-on-secondary rounded-xl shrink-0">
+                        <span className="material-symbols-outlined text-[20px]">forest</span>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-title-md font-bold text-on-surface text-sm m-0">Endemic Mangrove Composition</h4>
+                          <StatusBadge status="Verified" showDot={false} />
+                        </div>
+                        <p className="font-body-md text-xs text-on-surface-variant m-0">
+                          Dominant taxa include Rhizophora mucronata (58%) and Avicennia marina (42%) across 12 monitoring quadrants.
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {activeTab === 'Drone Data' && (
+                  <div>
+                    <CardHeader
+                      title="Aerial & Drone Survey Analysis"
+                      subtitle="Multispectral imagery and canopy height model metrics"
+                    />
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                      <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20">
+                        <span className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1">Flight Date</span>
+                        <span className="font-mono-data font-semibold text-on-surface text-sm">{workspaceData.droneData.flightDate}</span>
+                      </div>
+                      <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20">
+                        <span className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1">Resolution</span>
+                        <span className="font-mono-data font-semibold text-on-surface text-sm">{workspaceData.droneData.resolution}</span>
+                      </div>
+                      <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20">
+                        <span className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1">Captures</span>
+                        <span className="font-mono-data font-semibold text-on-surface text-sm">{workspaceData.droneData.imageCount}</span>
+                      </div>
+                      <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20">
+                        <span className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1">Coverage</span>
+                        <span className="font-mono-data font-semibold text-secondary text-sm">{workspaceData.droneData.coverage}</span>
+                      </div>
+                    </div>
+
+                    <div className="p-4 border border-secondary/20 bg-secondary-container/10 rounded-xl flex items-start gap-4 mb-4">
+                      <div className="p-2.5 bg-secondary text-on-secondary rounded-xl shrink-0">
+                        <span className="material-symbols-outlined text-[20px]">psychology</span>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-title-md font-bold text-on-surface text-sm m-0">Computer Vision Canopy Check</h4>
+                          <StatusBadge status="Verified" showDot={false} />
+                        </div>
+                        <p className="font-body-md text-xs text-on-surface-variant m-0">{workspaceData.aiAnalysis.description}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'Sensor Data' && (
+                  <div>
+                    <CardHeader
+                      title="In-Situ IoT & Porewater Telemetry"
+                      subtitle="Continuous soil salinity, pH, and redox telemetry readings"
+                    />
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                      <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20">
+                        <span className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1">Salinity (ppt)</span>
+                        <span className="font-mono-data font-semibold text-on-surface text-sm">28.4 ppt</span>
+                      </div>
+                      <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20">
+                        <span className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1">Porewater pH</span>
+                        <span className="font-mono-data font-semibold text-on-surface text-sm">7.62</span>
+                      </div>
+                      <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20">
+                        <span className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1">Redox (Eh)</span>
+                        <span className="font-mono-data font-semibold text-on-surface text-sm">-142 mV</span>
+                      </div>
+                      <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20">
+                        <span className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1">Uptime</span>
+                        <span className="font-mono-data font-semibold text-secondary text-sm">99.8%</span>
+                      </div>
+                    </div>
+
+                    <div className="p-4 border border-primary/20 bg-primary-container/10 rounded-xl flex items-start gap-4 mb-4">
+                      <div className="p-2.5 bg-primary text-on-primary rounded-xl shrink-0">
+                        <span className="material-symbols-outlined text-[20px]">sensors</span>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-title-md font-bold text-on-surface text-sm m-0">IoT Sensor Array Health</h4>
+                          <StatusBadge status="Active" showDot={false} />
+                        </div>
+                        <p className="font-body-md text-xs text-on-surface-variant m-0">
+                          8 solar-powered field loggers transmitting hourly LoRaWAN packets to coastal gateway node.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'Carbon Calc' && (
+                  <div>
+                    <CardHeader
+                      title="IPCC Tier 3 Biomass & SOC Accounting"
+                      subtitle="Allometric equations and soil organic carbon sequestration yield"
+                    />
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                      <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20">
+                        <span className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1">AGB Carbon</span>
+                        <span className="font-mono-data font-semibold text-on-surface text-sm">48.2 tC/ha</span>
+                      </div>
+                      <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20">
+                        <span className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1">BGB Carbon</span>
+                        <span className="font-mono-data font-semibold text-on-surface text-sm">24.1 tC/ha</span>
+                      </div>
+                      <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20">
+                        <span className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1">SOC (0-1m)</span>
+                        <span className="font-mono-data font-semibold text-on-surface text-sm">184.6 tC/ha</span>
+                      </div>
+                      <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant/20">
+                        <span className="block text-[11px] font-semibold text-on-surface-variant uppercase mb-1">Net CO2e</span>
+                        <span className="font-mono-data font-semibold text-secondary text-sm">14,200 tCO2e</span>
+                      </div>
+                    </div>
+
+                    <div className="p-4 border border-secondary/20 bg-secondary-container/10 rounded-xl flex items-start gap-4 mb-4">
+                      <div className="p-2.5 bg-secondary text-on-secondary rounded-xl shrink-0">
+                        <span className="material-symbols-outlined text-[20px]">calculate</span>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-title-md font-bold text-on-surface text-sm m-0">Methodology Verra VM0033</h4>
+                          <StatusBadge status="Verified" showDot={false} />
+                        </div>
+                        <p className="font-body-md text-xs text-on-surface-variant m-0">
+                          Conservativeness deduction applied (-5.0%) with 95% statistical confidence bounds.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {evidenceFiles.length > 0 && (
                   <div className="mt-6 pt-6 border-t border-outline-variant/20">

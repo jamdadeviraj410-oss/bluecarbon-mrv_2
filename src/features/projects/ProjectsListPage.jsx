@@ -319,7 +319,7 @@ export default function ProjectsListPage() {
                 </tr>
               ) : (
                 filteredProjects.map((project) => {
-                  const detailUrl = `/admin/projects/${project.id}`;
+                  const detailUrl = `/projects/${project.id}`;
 
                   return (
                     <tr

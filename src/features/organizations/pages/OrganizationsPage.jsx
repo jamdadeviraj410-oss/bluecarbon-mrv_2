@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '../../../utils/constants';
+import { supabase } from '../../../lib/supabase';
 
 const MOCK_ORGS = [
   {
@@ -71,10 +72,39 @@ const MOCK_ORGS = [
 ];
 
 export default function OrganizationsPage() {
-  const [organizations] = useState(MOCK_ORGS);
+  const [organizations, setOrganizations] = useState(MOCK_ORGS);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [selectedOrg, setSelectedOrg] = useState(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadOrgs() {
+      try {
+        const { data, error } = await supabase.from('organizations').select('*');
+        if (!error && data && data.length > 0 && isMounted) {
+          const mapped = data.map((d) => ({
+            id: d.org_code || d.id,
+            name: d.name,
+            type: d.type || 'NGO',
+            location: d.location || d.state || 'India',
+            contactEmail: d.email || 'contact@org.gov.in',
+            contactPerson: d.contact_person || 'Authorized Representative',
+            projectsCount: 2,
+            verifiedCredits: '14,200 tCO2e',
+            status: d.status || 'Verified',
+            registrationDate: d.registration_date ? new Date(d.registration_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '12 Jan 2023',
+            kycStatus: d.status === 'Verified' ? 'Approved' : 'Under Review',
+          }));
+          setOrganizations(mapped);
+        }
+      } catch (err) {
+        console.warn('Organizations live query fallback:', err);
+      }
+    }
+    loadOrgs();
+    return () => { isMounted = false; };
+  }, []);
 
   const filteredOrgs = organizations.filter((org) => {
     const matchesSearch =
@@ -244,7 +274,7 @@ export default function OrganizationsPage() {
       {/* Organization Details Modal / Drawer */}
       {selectedOrg && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-surface rounded-2xl max-w-lg w-full p-6 shadow-xl border border-outline-variant/30 flex flex-col">
+          <div className="bg-surface rounded-2xl max-w-lg w-full min-w-[320px] p-6 shadow-xl border border-outline-variant/30 flex flex-col">
             <div className="flex items-center justify-between pb-4 border-b border-outline-variant/20 mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-primary-container text-on-primary-container flex items-center justify-center font-bold">

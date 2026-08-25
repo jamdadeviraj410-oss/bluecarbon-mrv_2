@@ -320,14 +320,14 @@ export default function CarbonCreditDetailPage() {
         </div>
 
         {/* Right Column (5 cols, sticky top-24): Official Certificate */}
-        <div className="lg:col-span-5 flex flex-col gap-4 lg:sticky lg:top-24">
+        <div className="lg:col-span-5 flex flex-col gap-4 lg:sticky lg:top-24 w-full min-w-0">
           <h2 className="font-headline-md text-on-background text-lg flex items-center gap-2">
             <span className="material-symbols-outlined text-primary-container">workspace_premium</span>
             <span>Official Certificate</span>
           </h2>
 
           {/* Certificate Card */}
-          <div className="bg-surface-container-lowest rounded-2xl shadow-xl overflow-hidden border border-outline-variant group hover:-translate-y-1 transition-transform duration-300">
+          <div className="bg-surface-container-lowest rounded-2xl shadow-xl overflow-hidden border border-outline-variant group hover:-translate-y-1 transition-transform duration-300 w-full min-w-0">
             <div className="relative p-6 sm:p-8 flex flex-col items-center text-center gap-5 border-b-[8px] border-primary-container bg-gradient-to-br from-surface-container-lowest via-surface-container-low to-surface-variant/40">
               <div className="relative z-10 w-full flex justify-between items-start">
                 <div className="w-14 h-14 bg-primary-container rounded-xl flex items-center justify-center shadow-md">
@@ -339,12 +339,12 @@ export default function CarbonCreditDetailPage() {
                 </div>
               </div>
 
-              <div className="relative z-10 space-y-3 mt-2">
+              <div className="relative z-10 w-full space-y-3 mt-2">
                 <h3 className="font-display-lg text-primary-container text-xl sm:text-2xl uppercase tracking-widest leading-tight">
                   Certificate of<br />Carbon Sequestration
                 </h3>
                 <div className="h-px w-20 bg-tertiary-container mx-auto"></div>
-                <p className="font-body-lg text-on-surface italic max-w-sm mx-auto text-sm sm:text-base leading-relaxed">
+                <p className="font-body-lg text-on-surface italic w-full max-w-md mx-auto text-sm sm:text-base leading-relaxed px-2">
                   This certifies that{' '}
                   <strong className="font-headline-md text-on-surface not-italic block my-2 text-lg text-primary font-bold">
                     {formatNumber(credit.quantity)} tCO2e
