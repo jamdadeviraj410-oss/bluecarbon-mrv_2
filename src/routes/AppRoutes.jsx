@@ -166,6 +166,7 @@ export default function AppRoutes() {
         <Route path={ROUTES.COMMUNITY_DASHBOARD} element={<CommunityDashboardPage />} />
         <Route path={ROUTES.COMMUNITY_PORTAL} element={<CommunityPortalPage />} />
         <Route path={ROUTES.COMMUNITY_PROJECTS} element={<CommunityProjectsPage />} />
+        <Route path={ROUTES.COMMUNITY_CREATE_PROJECT} element={<ProjectFormPage />} />
         <Route path={ROUTES.COMMUNITY_MRV_VERIFICATION} element={<CommunityMrvVerificationPage />} />
         <Route path={ROUTES.COMMUNITY_EVIDENCE_UPLOAD} element={<CommunityEvidenceUploadPage />} />
         <Route path={ROUTES.COMMUNITY_ORGANIZATIONS} element={<CommunityOrganizationsPage />} />

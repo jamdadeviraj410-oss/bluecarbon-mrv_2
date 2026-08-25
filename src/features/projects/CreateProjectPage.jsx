@@ -5,7 +5,8 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { createProject, saveProject, projectTypes, indianStates } from './projectsService';
 import { calculatePolygonAreaHa, calculatePolygonPerimeterKm } from '../../utils/geoUtils';
-import { ROUTES } from '../../utils/constants';
+import { ROUTES, ROLES } from '../../utils/constants';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Curated offline presets for instant autocomplete and fallback resilience
 const INDIAN_LOCATION_PRESETS = [
@@ -68,6 +69,7 @@ const INITIAL_FORM_STATE = {
 
 export default function CreateProjectPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [submittedProject, setSubmittedProject] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -1410,14 +1412,28 @@ export default function CreateProjectPage() {
             <div className="flex flex-col sm:flex-row gap-3 w-full">
               <button
                 type="button"
-                onClick={() => navigate(ROUTES.ADMIN_PROJECTS || '/admin/projects')}
+                onClick={() => {
+                  const target = user?.role === ROLES.COMMUNITY
+                    ? (ROUTES.COMMUNITY_PROJECTS || '/community/projects')
+                    : (user?.role === ROLES.NGO || user?.role === ROLES.PANCHAYAT || user?.role === ROLES.PROJECT_MANAGER)
+                    ? (ROUTES.ORG_PROJECTS || '/organization/projects')
+                    : (ROUTES.ADMIN_PROJECTS || '/admin/projects');
+                  navigate(target);
+                }}
                 className="flex-1 py-3 px-4 rounded-xl bg-primary text-on-primary font-title-md text-sm hover:bg-primary-container transition-colors shadow-sm cursor-pointer"
               >
                 View Projects
               </button>
               <button
                 type="button"
-                onClick={() => navigate(ROUTES.ADMIN_DASHBOARD || '/admin/dashboard')}
+                onClick={() => {
+                  const target = user?.role === ROLES.COMMUNITY
+                    ? (ROUTES.COMMUNITY_DASHBOARD || '/community/dashboard')
+                    : (user?.role === ROLES.NGO || user?.role === ROLES.PANCHAYAT || user?.role === ROLES.PROJECT_MANAGER)
+                    ? (ROUTES.ORG_DASHBOARD || '/organization/dashboard')
+                    : (ROUTES.ADMIN_DASHBOARD || '/admin/dashboard');
+                  navigate(target);
+                }}
                 className="flex-1 py-3 px-4 rounded-xl border border-primary text-primary font-title-md text-sm hover:bg-primary/5 transition-colors cursor-pointer"
               >
                 Dashboard

@@ -2,15 +2,46 @@ import { useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getCarbonCreditById } from './carbonCreditsService';
 import { formatNumber } from '../../utils/formatters';
+import { useAuth } from '../../contexts/AuthContext';
+import { ROLES, ROUTES } from '../../utils/constants';
 
 export default function CarbonCreditDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [copiedContract, setCopiedContract] = useState(false);
   const [copiedTxHash, setCopiedTxHash] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
   const credit = useMemo(() => getCarbonCreditById(id), [id]);
+
+  const isCommunity = user?.role === ROLES.COMMUNITY;
+  const isOrg = user?.role === ROLES.NGO || user?.role === ROLES.PANCHAYAT || user?.role === ROLES.PROJECT_MANAGER;
+  const isAdminOrVerifier = user?.role === ROLES.NCCR_ADMIN || user?.role === ROLES.VERIFIER;
+
+  const returnCreditsRoute = isCommunity 
+    ? ROUTES.COMMUNITY_CARBON_CREDITS 
+    : isAdminOrVerifier 
+    ? (ROUTES.ADMIN_CARBON_CREDITS || '/admin/carbon-credits') 
+    : (ROUTES.PUBLIC_REGISTRY || '/public');
+
+  const viewProjectRoute = isCommunity || !user
+    ? (ROUTES.PUBLIC_PROJECT_DETAIL?.replace(':id', credit?.projectId) || `/public/projects/${credit?.projectId}`)
+    : isOrg
+    ? (ROUTES.ORG_PROJECT_DETAIL?.replace(':id', credit?.projectId) || `/organization/projects/${credit?.projectId}`)
+    : `/projects/${credit?.projectId}`;
+
+  const viewBlockchainRoute = isCommunity
+    ? (ROUTES.COMMUNITY_BLOCKCHAIN_REGISTRY || '/community/blockchain-registry')
+    : isAdminOrVerifier
+    ? (ROUTES.ADMIN_BLOCKCHAIN || '/admin/blockchain')
+    : (ROUTES.PUBLIC_REGISTRY || '/public');
+
+  const viewMrvRoute = isCommunity
+    ? (ROUTES.COMMUNITY_MRV_VERIFICATION || '/community/mrv-verification')
+    : isOrg
+    ? (ROUTES.ORG_DASHBOARD || '/organization/dashboard')
+    : (ROUTES.ADMIN_MRV_WORKSPACE?.replace(':projectId', credit?.projectId || 'PRJ-2023-089') || '/mrv/workspace/PRJ-2023-089');
 
   const handleCopy = (text, setter) => {
     if (navigator.clipboard) {
@@ -37,7 +68,7 @@ export default function CarbonCreditDetailPage() {
           No carbon credit found for identifier "{id}".
         </p>
         <button
-          onClick={() => navigate('/admin/carbon-credits')}
+          onClick={() => navigate(returnCreditsRoute)}
           className="px-4 py-2 bg-primary text-on-primary rounded-lg font-title-md hover:bg-primary-container transition-colors"
         >
           Return to Carbon Credits
@@ -70,14 +101,14 @@ export default function CarbonCreditDetailPage() {
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
           <Link
-            to={`/admin/projects/${credit.projectId}`}
+            to={viewProjectRoute}
             className="px-4 py-2 rounded-lg border border-primary-container text-primary-container font-title-md hover:bg-surface-container transition-colors flex items-center gap-2 shadow-sm text-sm"
           >
             <span className="material-symbols-outlined text-[20px]">account_tree</span>
             <span>View Project</span>
           </Link>
           <Link
-            to={`/admin/blockchain`}
+            to={viewBlockchainRoute}
             className="px-4 py-2 rounded-lg border border-primary-container text-primary-container font-title-md hover:bg-surface-container transition-colors flex items-center gap-2 shadow-sm text-sm"
           >
             <span className="material-symbols-outlined text-[20px]">link</span>
@@ -198,7 +229,7 @@ export default function CarbonCreditDetailPage() {
                           {step.subtitle}
                           {step.link && (
                             <Link
-                              to="/admin/mrv"
+                              to={viewMrvRoute}
                               className="text-primary hover:underline text-xs flex items-center gap-0.5 font-medium ml-1"
                             >
                               <span>View Package</span>
@@ -290,7 +321,7 @@ export default function CarbonCreditDetailPage() {
                           </span>
                         </button>
                         <Link
-                          to="/admin/blockchain"
+                          to={viewBlockchainRoute}
                           className="text-tertiary-fixed hover:underline text-xs flex items-center ml-2 gap-0.5"
                         >
                           <span>View on Explorer</span>

@@ -207,5 +207,36 @@ export async function runAuthRbacTests() {
     assert(code.includes('throw storageError;'), 'uploadEvidence must throw storageError on upload failure');
   });
 
+  // 22. Community Dashboard Navigation & Alerts Routes
+  await recordTest('Community Navigation: Dashboard buttons and alerts navigate to Community-authorized routes', () => {
+    const communityDashPath = path.resolve('src', 'features', 'community', 'CommunityDashboardPage.jsx');
+    assert(fs.existsSync(communityDashPath), 'CommunityDashboardPage.jsx must exist');
+    const code = fs.readFileSync(communityDashPath, 'utf8');
+    assert(code.includes('ROUTES.COMMUNITY_EVIDENCE_UPLOAD'), 'Dashboard must route Upload Evidence to COMMUNITY_EVIDENCE_UPLOAD');
+    assert(code.includes('ROUTES.COMMUNITY_CREATE_PROJECT'), 'Dashboard must route Create New Project to COMMUNITY_CREATE_PROJECT');
+    assert(code.includes('ROUTES.COMMUNITY_PROJECTS'), 'Dashboard must link Current Projects to COMMUNITY_PROJECTS');
+    assert(!code.includes('/organization/evidence/upload'), 'Dashboard must not link to /organization/evidence/upload');
+    assert(!code.includes('/organization/projects/new'), 'Dashboard must not link to /organization/projects/new');
+    assert(!code.includes('/admin/projects'), 'Dashboard must not link to /admin/projects');
+    assert(code.includes('/public/credits/'), 'View Certificate alert must point to public/community-safe credit view');
+  });
+
+  // 23. Community Project Creation Route Registration
+  await recordTest('RBAC & Routing: AppRoutes registers /community/projects/new under Community role group', () => {
+    const appRoutesPath = path.resolve('src', 'routes', 'AppRoutes.jsx');
+    const code = fs.readFileSync(appRoutesPath, 'utf8');
+    assert(code.includes('ROUTES.COMMUNITY_CREATE_PROJECT'), 'AppRoutes must include ROUTES.COMMUNITY_CREATE_PROJECT');
+  });
+
+  // 24. Carbon Credit Detail Role-Safe Internal Links
+  await recordTest('Certificate & Credit Detail: Internal links adapt role-safely for Community and public viewers', () => {
+    const creditDetailPath = path.resolve('src', 'features', 'carbonCredits', 'CarbonCreditDetailPage.jsx');
+    const code = fs.readFileSync(creditDetailPath, 'utf8');
+    assert(code.includes('isCommunity'), 'CarbonCreditDetailPage must check isCommunity');
+    assert(code.includes('returnCreditsRoute'), 'CarbonCreditDetailPage must define role-safe returnCreditsRoute');
+    assert(code.includes('viewProjectRoute'), 'CarbonCreditDetailPage must define role-safe viewProjectRoute');
+    assert(code.includes('viewBlockchainRoute'), 'CarbonCreditDetailPage must define role-safe viewBlockchainRoute');
+  });
+
   return testResults;
 }

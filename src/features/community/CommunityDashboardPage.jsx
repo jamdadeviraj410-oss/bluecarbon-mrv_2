@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Button from '../../components/common/Button';
 import Card, { CardHeader } from '../../components/common/Card';
 import StatusBadge from '../../components/common/StatusBadge';
+import { ROUTES } from '../../utils/constants';
 
 const MOCK_KPIS = [
   { label: 'Active Projects', value: '4', border: 'border-t-primary', color: 'text-primary' },
@@ -55,8 +56,8 @@ const MOCK_ACTIVITY = [
 ];
 
 const MOCK_ALERTS = [
-  { icon: 'warning', type: 'error', title: 'Field evidence requested', desc: 'Sundarbans West Reserve MRV review requires additional soil sample photos for plot 4B.', action: 'Upload Evidence', to: '/organization/evidence/upload' },
-  { icon: 'task_alt', type: 'success', title: 'Project MRV Verified', desc: 'Pichavaram Mangrove Revival has passed final verification. 14,200 Carbon Credits issued.', action: 'View Certificate', to: '/blockchain' },
+  { icon: 'warning', type: 'error', title: 'Field evidence requested', desc: 'Sundarbans West Reserve MRV review requires additional soil sample photos for plot 4B.', action: 'Upload Evidence', to: ROUTES.COMMUNITY_EVIDENCE_UPLOAD },
+  { icon: 'task_alt', type: 'success', title: 'Project MRV Verified', desc: 'Pichavaram Mangrove Revival has passed final verification. 14,200 Carbon Credits issued.', action: 'View Certificate', to: '/public/credits/BC-CREDIT-2026-008420' },
 ];
 
 function ProgressStepper({ steps, progressPercent }) {
@@ -110,14 +111,14 @@ export default function CommunityDashboardPage() {
           <Button
             variant="outline"
             icon="upload_file"
-            onClick={() => navigate('/organization/evidence/upload')}
+            onClick={() => navigate(ROUTES.COMMUNITY_EVIDENCE_UPLOAD)}
           >
             Upload Evidence
           </Button>
           <Button
             variant="primary"
             icon="add_circle"
-            onClick={() => navigate('/organization/projects/new')}
+            onClick={() => navigate(ROUTES.COMMUNITY_CREATE_PROJECT)}
           >
             Create New Project
           </Button>
@@ -141,14 +142,14 @@ export default function CommunityDashboardPage() {
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h2 className="font-headline-md text-lg sm:text-xl font-bold text-primary tracking-tight m-0">Current Projects</h2>
-          <Link to="/admin/projects" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+          <Link to={ROUTES.COMMUNITY_PROJECTS} className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
             <span>View All Projects</span>
             <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
           </Link>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {MOCK_PROJECTS.map((proj, i) => (
-            <Card key={i} hover className="flex flex-col gap-4 cursor-pointer" onClick={() => navigate(`/projects/${proj.id}`)}>
+            <Card key={i} hover className="flex flex-col gap-4 cursor-pointer" onClick={() => navigate(ROUTES.COMMUNITY_PROJECTS)}>
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                 <div>
                   <h3 className="font-title-md font-bold text-on-surface text-base mb-0.5">{proj.name}</h3>

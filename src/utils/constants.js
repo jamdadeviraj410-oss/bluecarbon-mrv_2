@@ -98,6 +98,7 @@ export const ROUTES = {
   COMMUNITY_DASHBOARD: '/community/dashboard',
   COMMUNITY_PORTAL: '/community/portal',
   COMMUNITY_PROJECTS: '/community/projects',
+  COMMUNITY_CREATE_PROJECT: '/community/projects/new',
   COMMUNITY_MRV_VERIFICATION: '/community/mrv-verification',
   COMMUNITY_EVIDENCE_UPLOAD: '/community/evidence-upload',
   COMMUNITY_ORGANIZATIONS: '/community/organizations',
