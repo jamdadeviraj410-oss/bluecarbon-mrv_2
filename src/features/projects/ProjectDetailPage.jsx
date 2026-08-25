@@ -1,6 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getProjectById, getProjects } from './projectsService';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import { getProjectById, getProjects, fetchProjectById } from './projectsService';
+import { getProjectSpatialDetails } from '../governance/adapters/gisAdapter';
+import { INITIAL_SENSORS } from '../../services/sensorService';
+import { getDroneSurveys } from '../../services/droneService';
 import StatusBadge from '../../components/common/StatusBadge';
 import { formatNumber, formatCarbon, formatArea, formatDate } from '../../utils/formatters';
 import { ROUTES } from '../../utils/constants';
@@ -9,10 +14,301 @@ export default function ProjectDetailPage() {
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState('Overview');
   const [showBlockchainModal, setShowBlockchainModal] = useState(false);
+  const [activeLayer, setActiveLayer] = useState('ALL'); // 'ALL' | 'BOUNDARY' | 'PLOTS' | 'SENSORS'
 
-  // Fetch project or fallback to first project
+  // Fetch project or fallback to matching project in cache
   const allProjects = getProjects();
-  const project = getProjectById(id) || allProjects[0];
+  const [project, setProject] = useState(() => getProjectById(id) || allProjects.find((p) => p.id === id) || allProjects[0]);
+
+  const mapContainerRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const layerGroupRef = useRef(null);
+
+  // Sync project when route id changes or when live data loads
+  useEffect(() => {
+    let isMounted = true;
+    const current = getProjectById(id) || allProjects.find((p) => p.id === id);
+    if (current) {
+      setProject(current);
+    }
+    fetchProjectById(id).then((data) => {
+      if (isMounted && data) {
+        setProject(data);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
+
+  const lat = project?.coordinates?.lat ?? project?.latitude;
+  const lng = project?.coordinates?.lng ?? project?.longitude;
+  const hasValidCoords = lat !== undefined && lng !== undefined && !isNaN(Number(lat)) && !isNaN(Number(lng));
+
+  // Initialize interactive Leaflet map instance
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+    }
+
+    if (!hasValidCoords) return;
+
+    const numLat = Number(lat);
+    const numLng = Number(lng);
+
+    const map = L.map(mapContainerRef.current, {
+      center: [numLat, numLng],
+      zoom: 13,
+      minZoom: 4,
+      maxZoom: 18,
+      zoomControl: false,
+      attributionControl: false,
+    });
+
+    mapInstanceRef.current = map;
+
+    // CartoDB Voyager basemap
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+      subdomains: 'abcd',
+    }).addTo(map);
+
+    const layerGroup = L.layerGroup().addTo(map);
+    layerGroupRef.current = layerGroup;
+
+    const timer = setTimeout(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    }, 150);
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    });
+    resizeObserver.observe(mapContainerRef.current);
+
+    return () => {
+      clearTimeout(timer);
+      resizeObserver.disconnect();
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, [project?.id, hasValidCoords, lat, lng]);
+
+  // Update dynamic layers (Boundary, Plots, Sensors) on project / layer change
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    const layerGroup = layerGroupRef.current;
+    if (!map || !layerGroup || !hasValidCoords) return;
+
+    layerGroup.clearLayers();
+
+    const numLat = Number(lat);
+    const numLng = Number(lng);
+
+    // 1. Determine Project Boundary Polygon
+    const droneSurveys = getDroneSurveys(project.id) || [];
+    let boundaryCoords = null;
+
+    if (droneSurveys.length > 0 && droneSurveys[0].geojson_data?.features?.[0]?.geometry?.coordinates) {
+      const rawCoords = droneSurveys[0].geojson_data.features[0].geometry.coordinates[0];
+      boundaryCoords = rawCoords.map(([gLng, gLat]) => [gLat, gLng]);
+    }
+
+    if (!boundaryCoords || boundaryCoords.length < 3) {
+      const areaHa = Number(project.area) || 128;
+      const scale = Math.sqrt(areaHa / 100) * 0.008;
+      boundaryCoords = [
+        [numLat + scale * 1.1, numLng - scale * 1.3],
+        [numLat + scale * 1.3, numLng + scale * 0.9],
+        [numLat - scale * 0.4, numLng + scale * 1.4],
+        [numLat - scale * 1.2, numLng - scale * 0.3],
+        [numLat - scale * 0.7, numLng - scale * 1.2],
+      ];
+    }
+
+    if (activeLayer === 'ALL' || activeLayer === 'BOUNDARY') {
+      const boundaryPolygon = L.polygon(boundaryCoords, {
+        color: '#006a6a',
+        weight: 2.5,
+        dashArray: '5, 5',
+        fillColor: '#006a6a',
+        fillOpacity: 0.2,
+      }).addTo(layerGroup);
+
+      boundaryPolygon.bindTooltip(
+        `<strong>${project.name}</strong><br/>Boundary Area: ${project.area} ha`,
+        { sticky: true }
+      );
+    }
+
+    // 2. Render Project-specific Plantation Plots
+    if (activeLayer === 'ALL' || activeLayer === 'PLOTS') {
+      const spatialDetails = getProjectSpatialDetails(project.id);
+      const plots = spatialDetails?.mrvSubmissions?.[0]?.plots;
+
+      if (plots && plots.length > 0) {
+        plots.forEach((plot, idx) => {
+          const pLat = plot.lat || numLat + (idx === 0 ? 0.003 : idx === 1 ? -0.004 : 0.005);
+          const pLng = plot.lng || numLng + (idx === 0 ? 0.004 : idx === 1 ? -0.003 : 0.006);
+
+          const plotIcon = L.divIcon({
+            className: 'custom-mrv-plot-marker',
+            html: `
+              <div style="
+                width: 22px;
+                height: 22px;
+                background: #1B6D24;
+                color: #ffffff;
+                font-weight: 800;
+                font-size: 10px;
+                border-radius: 4px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: 2px solid #ffffff;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+                cursor: pointer;
+              ">
+                P${idx + 1}
+              </div>
+            `,
+            iconSize: [22, 22],
+            iconAnchor: [11, 11],
+          });
+
+          const pMarker = L.marker([pLat, pLng], { icon: plotIcon }).addTo(layerGroup);
+          pMarker.bindPopup(`
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px;">
+              <strong style="color: #1B6D24;">${plot.plotId || `Plot P${idx + 1}`}</strong><br/>
+              ${plot.species ? `Species: <em>${plot.species}</em><br/>` : ''}
+              ${plot.biomassDensity ? `Biomass: ${plot.biomassDensity}<br/>` : ''}
+              ${plot.soilCarbon ? `Soil Carbon: ${plot.soilCarbon}` : ''}
+            </div>
+          `);
+        });
+      } else {
+        const defaultPlots = [
+          { id: 'P1', lat: numLat + 0.003, lng: numLng + 0.003, species: 'Avicennia marina' },
+          { id: 'P2', lat: numLat - 0.003, lng: numLng - 0.002, species: 'Rhizophora mucronata' },
+        ];
+        defaultPlots.forEach((sp) => {
+          const plotIcon = L.divIcon({
+            className: 'custom-mrv-plot-marker',
+            html: `
+              <div style="
+                width: 22px;
+                height: 22px;
+                background: #1B6D24;
+                color: #ffffff;
+                font-weight: 800;
+                font-size: 10px;
+                border-radius: 4px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: 2px solid #ffffff;
+                box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+                cursor: pointer;
+              ">
+                ${sp.id}
+              </div>
+            `,
+            iconSize: [22, 22],
+            iconAnchor: [11, 11],
+          });
+          const pMarker = L.marker([sp.lat, sp.lng], { icon: plotIcon }).addTo(layerGroup);
+          pMarker.bindPopup(`
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px;">
+              <strong style="color: #1B6D24;">Plot ${sp.id}</strong><br/>
+              Species: <em>${sp.species}</em><br/>
+              Status: Active Monitoring
+            </div>
+          `);
+        });
+      }
+    }
+
+    // 3. Render Project-specific Sensor Nodes
+    if (activeLayer === 'ALL' || activeLayer === 'SENSORS') {
+      const projectSensors = INITIAL_SENSORS.filter((s) => s.projectId === project.id);
+      if (projectSensors.length > 0) {
+        projectSensors.forEach((sensor, idx) => {
+          const sLat = sensor.latitude;
+          const sLng = sensor.longitude;
+          const sensorIcon = L.divIcon({
+            className: 'custom-sensor-node-pin',
+            html: `
+              <div style="
+                width: 14px;
+                height: 14px;
+                background: #ba1a1a;
+                border: 2px solid #ffffff;
+                border-radius: 50%;
+                box-shadow: 0 0 8px rgba(186,26,26,0.8);
+                cursor: pointer;
+              "></div>
+            `,
+            iconSize: [14, 14],
+            iconAnchor: [7, 7],
+          });
+          const sMarker = L.marker([sLat, sLng], { icon: sensorIcon }).addTo(layerGroup);
+          sMarker.bindPopup(`
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px;">
+              <strong style="color: #ba1a1a;">${sensor.name || `Sensor Node #${idx + 1}`}</strong><br/>
+              ID: ${sensor.sensorId}<br/>
+              Type: ${sensor.type}<br/>
+              Status: <span style="color: #16a34a; font-weight: bold;">${sensor.status}</span> (Battery: ${sensor.battery}%)
+            </div>
+          `);
+        });
+      } else {
+        const defaultSensors = [
+          { name: 'Tidal Hydrology Node', lat: numLat + 0.002, lng: numLng - 0.003, type: 'Hydrology Probe' },
+          { name: 'Sediment Salinity Array', lat: numLat - 0.002, lng: numLng + 0.004, type: 'Salinity Probe' },
+        ];
+        defaultSensors.forEach((ds) => {
+          const sensorIcon = L.divIcon({
+            className: 'custom-sensor-node-pin',
+            html: `
+              <div style="
+                width: 14px;
+                height: 14px;
+                background: #ba1a1a;
+                border: 2px solid #ffffff;
+                border-radius: 50%;
+                box-shadow: 0 0 8px rgba(186,26,26,0.8);
+                cursor: pointer;
+              "></div>
+            `,
+            iconSize: [14, 14],
+            iconAnchor: [7, 7],
+          });
+          const sMarker = L.marker([ds.lat, ds.lng], { icon: sensorIcon }).addTo(layerGroup);
+          sMarker.bindPopup(`
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 11px;">
+              <strong style="color: #ba1a1a;">${ds.name}</strong><br/>
+              Type: ${ds.type}<br/>
+              Status: <span style="color: #16a34a; font-weight: bold;">ACTIVE</span>
+            </div>
+          `);
+        });
+      }
+    }
+
+    // Fit map bounds to boundary polygon
+    if (boundaryCoords && boundaryCoords.length > 0) {
+      const bounds = L.latLngBounds(boundaryCoords);
+      map.fitBounds(bounds, { padding: [35, 35], maxZoom: 15 });
+    }
+  }, [project, hasValidCoords, lat, lng, activeLayer]);
 
   const tabs = [
     { id: 'Overview', label: 'Overview', icon: 'info' },
@@ -190,77 +486,61 @@ export default function ProjectDetailPage() {
         <div className="xl:col-span-8 flex flex-col gap-6">
           {/* GIS Map Container */}
           <div className="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/30 overflow-hidden relative h-[380px] sm:h-[420px] flex flex-col">
-            {/* Map Visual Background */}
+            {/* Map Visual Background Canvas */}
             <div className="w-full h-full relative bg-[#0b1c30] overflow-hidden flex items-center justify-center">
-              {/* GIS Grid Background */}
-              <svg className="w-full h-full absolute inset-0 opacity-40" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <pattern id="gisGrid" width="40" height="40" patternUnits="userSpaceOnUse">
-                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#3a5f94" strokeWidth="0.5" />
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="#001e40" />
-                <rect width="100%" height="100%" fill="url(#gisGrid)" />
-                {/* Coastal Line Contour */}
-                <path
-                  d="M0,150 Q200,80 400,180 T800,120 T1200,200 L1200,450 L0,450 Z"
-                  fill="#003366"
-                  opacity="0.6"
-                />
-                {/* Mangrove Polygons */}
-                <polygon
-                  points="220,130 380,110 420,220 310,260 190,190"
-                  fill="#1b6d24"
-                  fillOpacity="0.4"
-                  stroke="#88d982"
-                  strokeWidth="2"
-                  strokeDasharray="4,2"
-                />
-                <polygon
-                  points="500,160 680,140 710,240 590,270 480,210"
-                  fill="#1b6d24"
-                  fillOpacity="0.3"
-                  stroke="#44d8f1"
-                  strokeWidth="2"
-                />
-                {/* Sensor Points */}
-                <circle cx="280" cy="180" r="6" fill="#ba1a1a" stroke="#ffffff" strokeWidth="2" />
-                <circle cx="350" cy="160" r="6" fill="#ba1a1a" stroke="#ffffff" strokeWidth="2" />
-                <circle cx="600" cy="200" r="6" fill="#ba1a1a" stroke="#ffffff" strokeWidth="2" />
-              </svg>
+              {hasValidCoords ? (
+                <div ref={mapContainerRef} className="w-full h-full z-10" />
+              ) : (
+                <div className="flex flex-col items-center justify-center p-6 text-center text-white/60 z-10 space-y-2 font-mono-data text-xs">
+                  <span className="material-symbols-outlined text-[36px] text-white/40">location_off</span>
+                  <p>No registered coordinates or spatial boundary for {project.id}</p>
+                </div>
+              )}
 
-              {/* Center Map Label */}
-              <div className="relative z-10 text-center pointer-events-none p-4">
-                <span className="font-mono-data text-xs text-primary-fixed uppercase tracking-widest bg-primary/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-primary-fixed/20 shadow-md">
-                  {project.location} • Lat: {project.coordinates?.lat || 16.99}°N, Lng: {project.coordinates?.lng || 73.31}°E
+              {/* Center Map Location & Coordinate Badge */}
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[400] text-center pointer-events-none p-2 max-w-[90%]">
+                <span className="font-mono-data text-xs text-primary-fixed uppercase tracking-widest bg-primary/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-primary-fixed/20 shadow-md inline-block truncate max-w-full">
+                  {project.location} • Lat: {hasValidCoords ? Number(lat).toFixed(4) : 'N/A'}°N, Lng: {hasValidCoords ? Number(lng).toFixed(4) : 'N/A'}°E
                 </span>
               </div>
             </div>
 
             {/* Map Controls Overlay */}
-            <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
+            <div className="absolute top-4 right-4 flex flex-col gap-2 z-[400]">
               <button
-                className="w-9 h-9 bg-surface-container-lowest/90 backdrop-blur-md rounded-lg shadow-md border border-outline-variant/30 flex items-center justify-center text-on-surface hover:text-primary transition-colors"
+                onClick={() => mapInstanceRef.current?.zoomIn()}
+                className="w-9 h-9 bg-surface-container-lowest/90 backdrop-blur-md rounded-lg shadow-md border border-outline-variant/30 flex items-center justify-center text-on-surface hover:text-primary transition-colors cursor-pointer"
                 title="Zoom In"
               >
                 <span className="material-symbols-outlined text-[20px]">add</span>
               </button>
               <button
-                className="w-9 h-9 bg-surface-container-lowest/90 backdrop-blur-md rounded-lg shadow-md border border-outline-variant/30 flex items-center justify-center text-on-surface hover:text-primary transition-colors"
+                onClick={() => mapInstanceRef.current?.zoomOut()}
+                className="w-9 h-9 bg-surface-container-lowest/90 backdrop-blur-md rounded-lg shadow-md border border-outline-variant/30 flex items-center justify-center text-on-surface hover:text-primary transition-colors cursor-pointer"
                 title="Zoom Out"
               >
                 <span className="material-symbols-outlined text-[20px]">remove</span>
               </button>
               <button
-                className="w-9 h-9 bg-surface-container-lowest/90 backdrop-blur-md rounded-lg shadow-md border border-outline-variant/30 flex items-center justify-center text-on-surface hover:text-primary transition-colors"
-                title="Layers"
+                onClick={() => {
+                  setActiveLayer((prev) => {
+                    if (prev === 'ALL') return 'BOUNDARY';
+                    if (prev === 'BOUNDARY') return 'PLOTS';
+                    if (prev === 'PLOTS') return 'SENSORS';
+                    return 'ALL';
+                  });
+                }}
+                className={`w-9 h-9 bg-surface-container-lowest/90 backdrop-blur-md rounded-lg shadow-md border border-outline-variant/30 flex items-center justify-center transition-colors cursor-pointer ${
+                  activeLayer !== 'ALL' ? 'text-primary font-bold bg-primary/10' : 'text-on-surface hover:text-primary'
+                }`}
+                title={`Filter Map Layers (Current: ${activeLayer})`}
               >
                 <span className="material-symbols-outlined text-[20px]">layers</span>
               </button>
             </div>
 
             {/* Map Legend Overlay */}
-            <div className="absolute bottom-4 left-4 bg-surface-container-lowest/90 backdrop-blur-md p-3 rounded-xl shadow-md border border-outline-variant/30 text-xs font-mono-data z-10">
+            <div className="absolute bottom-4 left-4 bg-surface-container-lowest/90 backdrop-blur-md p-3 rounded-xl shadow-md border border-outline-variant/30 text-xs font-mono-data z-[400]">
               <div className="flex items-center gap-2 mb-1.5">
                 <div className="w-3 h-3 rounded bg-primary border border-primary-container"></div>
                 <span>Project Boundary</span>
