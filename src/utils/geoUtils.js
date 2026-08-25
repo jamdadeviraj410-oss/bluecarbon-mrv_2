@@ -203,6 +203,45 @@ export function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
 }
 
 /**
+ * Calculates geodesic area in hectares for a closed polygon ring of [lat, lng] coordinates
+ * @param {Array<[number, number]>} coords Array of [lat, lng] vertices
+ * @returns {number} Area in hectares (rounded to 1 decimal)
+ */
+export function calculatePolygonAreaHa(coords) {
+  if (!coords || !Array.isArray(coords) || coords.length < 3) return 0;
+  const R = 6378137; // Earth radius in meters
+  let total = 0;
+  const n = coords.length;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const lat1 = (coords[i][0] * Math.PI) / 180;
+    const lat2 = (coords[j][0] * Math.PI) / 180;
+    const lon1 = (coords[i][1] * Math.PI) / 180;
+    const lon2 = (coords[j][1] * Math.PI) / 180;
+    total += (lon2 - lon1) * (2 + Math.sin(lat1) + Math.sin(lat2));
+  }
+  total = Math.abs((total * R * R) / 2.0); // area in m^2
+  const areaHa = total / 10000; // 1 ha = 10,000 m^2
+  return parseFloat(areaHa.toFixed(1));
+}
+
+/**
+ * Calculates perimeter in kilometers for a polygon ring of [lat, lng] coordinates
+ * @param {Array<[number, number]>} coords Array of [lat, lng] vertices
+ * @returns {number} Perimeter in km (rounded to 2 decimals)
+ */
+export function calculatePolygonPerimeterKm(coords) {
+  if (!coords || !Array.isArray(coords) || coords.length < 2) return 0;
+  let distMeters = 0;
+  const n = coords.length;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    distMeters += calculateDistanceMeters(coords[i][0], coords[i][1], coords[j][0], coords[j][1]);
+  }
+  return parseFloat((distMeters / 1000).toFixed(2));
+}
+
+/**
  * Computes canonical SHA-256 hash of a file or ArrayBuffer in the browser using SubtleCrypto
  * @param {File|Blob|ArrayBuffer} fileOrBuffer
  * @returns {Promise<string>} Hex-encoded SHA-256 hash
