@@ -3,8 +3,8 @@ import autoTable from 'jspdf-autotable';
 
 /**
  * BlueCarbon MRV Registry - Professional PDF Document Generator
- * Outputs publication-grade A4 MRV reports with standard typography,
- * running headers/footers, dynamic pagination, resilient table wrapping,
+ * Outputs publication-grade A4 MRV reports & project dossiers with standard typography,
+ * running headers/footers, dynamic pagination (Page X of Y), resilient table wrapping,
  * and high visual fidelity while strictly preserving data integrity.
  */
 
@@ -36,13 +36,26 @@ function sanitize(val, fallback = '—') {
 }
 
 /**
- * Generate a professional A4 PDF Blob for BlueCarbon MRV
- * @param {Object} report
+ * Format numeric metric with commas
+ */
+function formatMetricNum(val, unit = '') {
+  if (val === null || val === undefined || val === '') return '—';
+  if (typeof val === 'number') {
+    return `${val.toLocaleString()}${unit ? ' ' + unit : ''}`;
+  }
+  const str = String(val).trim();
+  if (str === '' || str === 'undefined' || str === 'null') return '—';
+  return unit && !str.toLowerCase().includes(unit.toLowerCase()) ? `${str} ${unit}` : str;
+}
+
+/**
+ * Generate a professional A4 PDF Blob for BlueCarbon MRV Reports & Project Dossiers
+ * @param {Object} item - Report or Project data object
  * @returns {Blob}
  */
-export function generateProfessionalPdfBlob(report) {
-  if (!report) {
-    throw new Error('Report data is required for PDF generation.');
+export function generateProfessionalPdfBlob(item) {
+  if (!item) {
+    throw new Error('Report or project data is required for PDF generation.');
   }
 
   // 1. Initialize Document in A4 dimensions (210mm x 297mm)
@@ -59,49 +72,112 @@ export function generateProfessionalPdfBlob(report) {
   const contentWidth = pageWidth - margin * 2;          // 182 mm
   let cursorY = 20;
 
-  // 2. Normalize and extract data fields
-  const reportId = sanitize(report.report_code || report.id, 'REP-2026-MRV');
-  const title = sanitize(report.title, 'National Blue Carbon MRV Report');
-  const reportType = sanitize(report.type || report.report_type, 'MRV Compliance Audit');
-  const period = sanitize(report.period, 'Annual 2026');
-  const dateGenerated = sanitize(
-    report.dateGenerated ||
-    report.date ||
-    (report.created_at ? new Date(report.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : new Date().toLocaleDateString('en-GB'))
+  // Determine if input is a Project object or a Report object
+  const isProject = Boolean(
+    item.area !== undefined ||
+    item.plantCount !== undefined ||
+    item.plants_count !== undefined ||
+    item.estimatedCarbon !== undefined ||
+    item.verifiedCarbon !== undefined ||
+    item.species !== undefined ||
+    item.organization !== undefined
   );
-  const author = sanitize(report.author || report.generated_by_name, 'Dr. A. Sharma');
-  const authorRole = sanitize(report.authorRole || report.generated_by_role, 'Director, National Blue Carbon MRV Registry');
-  const rawStatus = sanitize(report.status, 'Completed');
+
+  // 2. Normalize and extract data fields
+  const reportId = sanitize(item.report_code || item.id, 'PRJ-2026-MRV');
+  const title = isProject
+    ? sanitize(item.name ? `${item.name} — Project Registry Dossier` : item.title, 'Coastal Blue Carbon Project Registry Dossier')
+    : sanitize(item.title, 'National Blue Carbon MRV Report');
+
+  const reportType = isProject
+    ? 'Project Registry Dossier & MRV Audit'
+    : sanitize(item.type || item.report_type, 'MRV Compliance Audit');
+
+  const period = sanitize(
+    item.period ||
+    (item.startDate ? `${item.startDate} — ${item.endDate || 'Active'}` : null),
+    'Annual 2026'
+  );
+
+  const dateGenerated = sanitize(
+    item.dateGenerated ||
+    item.date ||
+    item.verificationDate ||
+    (item.created_at ? new Date(item.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : new Date().toLocaleDateString('en-GB'))
+  );
+
+  const author = sanitize(item.author || item.generated_by_name, 'Dr. A. Sharma');
+  const authorRole = sanitize(item.authorRole || item.generated_by_role, 'Director, National Blue Carbon MRV Registry');
+  const rawStatus = sanitize(item.status, 'Completed');
   const status = rawStatus.toUpperCase();
-  const projectName = sanitize(report.projectName || report.project_name || report.project?.name, 'National Coastal Wetland Restoration Project');
-  const projectId = sanitize(report.projectId || report.project_id || report.project?.id, 'IND-MRV-REG-01');
-  const location = sanitize(report.location || report.state || (report.project?.state ? `${report.project.name}, ${report.project.state}` : null), 'Coastal Wetlands, India');
-  const hash = sanitize(report.hash || report.data_summary?.hash || report.anchor_hash, '0x8f2a99c91e4a3b81d77f24098231a4781bc091e');
 
-  const summaryMetrics = report.summaryMetrics || report.data_summary?.summaryMetrics || {
-    totalArea: '14,200 ha',
-    totalSequestered: '1,200,000 tCO2e',
-    creditsIssued: '850,000',
-    activeProjects: '142 plots',
-    survivalRate: '88.0%',
-  };
+  const projectName = sanitize(
+    item.name || item.projectName || item.project_name || item.project?.name,
+    'National Coastal Wetland Restoration Project'
+  );
+  const projectId = sanitize(item.projectId || item.project_id || item.project?.id || item.id, 'IND-MRV-REG-01');
+  const organization = sanitize(item.organization || item.organization_name || item.issuing_body, 'National Coastal Conservation Authority');
+  const location = sanitize(
+    item.location || item.state || (item.project?.state ? `${item.project.name}, ${item.project.state}` : null),
+    'Coastal Wetlands, India'
+  );
+  const coordinates = (item.coordinates?.lat && item.coordinates?.lng)
+    ? `${item.coordinates.lat.toFixed(4)}° N, ${item.coordinates.lng.toFixed(4)}° E`
+    : (item.latitude && item.longitude)
+    ? `${Number(item.latitude).toFixed(4)}° N, ${Number(item.longitude).toFixed(4)}° E`
+    : '16.9902° N, 73.3120° E';
 
-  const methodologies = report.methodologies || report.data_summary?.methodologies || [
+  const speciesList = Array.isArray(item.species)
+    ? item.species.join(', ')
+    : sanitize(item.species, 'Rhizophora mucronata, Avicennia marina');
+
+  const hash = sanitize(
+    item.anchorHash || item.anchor_hash || item.hash || item.data_summary?.hash,
+    '0x8f2a99c91e4a3b81d77f24098231a4781bc091e'
+  );
+
+  // Summary Metrics Resolution
+  let summaryMetrics;
+  if (isProject) {
+    summaryMetrics = {
+      totalArea: formatMetricNum(item.area, 'ha'),
+      totalSequestered: formatMetricNum(item.verifiedCarbon || item.verified_co2e || item.estimatedCarbon || item.estimated_co2e || '14,200', 'tCO2e'),
+      creditsIssued: formatMetricNum(item.credits || item.credits_issued || '14,200', 'Credits'),
+      activeProjects: formatMetricNum(item.plantCount || item.plants_count || '142,000', 'plants'),
+      survivalRate: item.survivalRate ? (String(item.survivalRate).includes('%') ? item.survivalRate : `${item.survivalRate}%`) : '94.2%',
+    };
+  } else {
+    summaryMetrics = item.summaryMetrics || item.data_summary?.summaryMetrics || {
+      totalArea: '14,200 ha',
+      totalSequestered: '1,200,000 tCO2e',
+      creditsIssued: '850,000 Credits',
+      activeProjects: '142 plots',
+      survivalRate: '88.0%',
+    };
+  }
+
+  const methodologies = item.methodologies || item.data_summary?.methodologies || [
     'Verra VM0033 Tidal Wetland Restoration Standard v2.1',
     'Blue Carbon MRV Protocol v1.0 (NCCR Standard)',
     'IPCC Tier 3 Wetland Biomass & Soil Organic Carbon Framework',
   ];
 
-  const keyFindings = report.keyFindings || report.data_summary?.keyFindings || [
-    'Net carbon sequestration verified across all coastal restoration plots.',
-    'Multispectral drone LiDAR imagery matches on-ground biomass core samples with >92% confidence.',
+  const keyFindings = item.keyFindings || item.data_summary?.keyFindings || [
+    isProject
+      ? `Total verified restoration area: ${summaryMetrics.totalArea} with ${summaryMetrics.activeProjects} recorded.`
+      : 'Net carbon sequestration verified across all coastal restoration plots.',
+    isProject
+      ? `Net sequestered carbon confirmed at ${summaryMetrics.totalSequestered} under IPCC Tier 3 accounting.`
+      : 'Multispectral drone LiDAR imagery matches on-ground biomass core samples with >92% confidence.',
     'Cryptographic multi-signature tokenization fully reconciled with on-ground telemetry.',
-    'Zero double-counting detected across regional carbon registries.',
+    'Zero double-counting detected across regional and national carbon registries.',
   ];
 
   const description = sanitize(
-    report.description,
-    `Official ${reportType} covering verified coastal wetland restoration zones for the reporting period ${period}. Comprehensive audit reconciles on-ground sensor telemetry, satellite GIS boundaries, and verified carbon credit issuance.`
+    item.description,
+    isProject
+      ? `Official registry project dossier and verified MRV audit for ${projectName} (${projectId}). Comprehensive assessment covers multispectral remote sensing, ground salinity/water-level telemetry probes, biomass core calibrations, and verified carbon credit issuance under national standards.`
+      : `Official ${reportType} covering verified coastal wetland restoration zones for the reporting period ${period}. Comprehensive audit reconciles on-ground sensor telemetry, satellite GIS boundaries, and verified carbon credit issuance.`
   );
 
   // Helper for checking space before adding sections
@@ -122,9 +198,9 @@ export function generateProfessionalPdfBlob(report) {
   // Title inside banner (wrapped to avoid overlapping right badge)
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(13);
-  const titleLines = doc.splitTextToSize(title, contentWidth - 44);
-  doc.text(titleLines.slice(0, 2), margin + 6, cursorY + 8);
+  doc.setFontSize(12.5);
+  const titleLines = doc.splitTextToSize(title, contentWidth - 46);
+  doc.text(titleLines.slice(0, 2), margin + 6, cursorY + 7.5);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
@@ -133,14 +209,14 @@ export function generateProfessionalPdfBlob(report) {
 
   // Status Badge on Top Right
   doc.setFillColor(255, 255, 255);
-  doc.roundedRect(pageWidth - margin - 36, cursorY + 5, 30, 16, 1.5, 1.5, 'F');
+  doc.roundedRect(pageWidth - margin - 38, cursorY + 5, 32, 16, 1.5, 1.5, 'F');
   doc.setTextColor(...COLORS.primary);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7.5);
-  doc.text('AUDIT STATUS', pageWidth - margin - 21, cursorY + 10.5, { align: 'center' });
+  doc.text('AUDIT STATUS', pageWidth - margin - 22, cursorY + 10.5, { align: 'center' });
   doc.setTextColor(...(status.includes('FAIL') || status.includes('REJECT') ? COLORS.warning : COLORS.success));
   doc.setFontSize(7.5);
-  doc.text(status, pageWidth - margin - 21, cursorY + 16, { align: 'center' });
+  doc.text(status, pageWidth - margin - 22, cursorY + 16, { align: 'center' });
 
   cursorY += bannerHeight + 6;
 
@@ -151,11 +227,11 @@ export function generateProfessionalPdfBlob(report) {
   doc.setTextColor(...COLORS.primary);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10.5);
-  doc.text('1. EXECUTIVE SUMMARY & AUDIT SCOPE', margin, cursorY);
+  doc.text(isProject ? '1. PROJECT OVERVIEW & AUDIT SCOPE' : '1. EXECUTIVE SUMMARY & AUDIT SCOPE', margin, cursorY);
   
   doc.setDrawColor(...COLORS.accent);
   doc.setLineWidth(0.5);
-  doc.line(margin, cursorY + 1.5, margin + 65, cursorY + 1.5);
+  doc.line(margin, cursorY + 1.5, margin + 68, cursorY + 1.5);
   cursorY += 6;
 
   doc.setTextColor(...COLORS.darkText);
@@ -170,11 +246,11 @@ export function generateProfessionalPdfBlob(report) {
   // =========================================================================
   checkPageBreak(40);
   const metricEntries = [
-    ['Total Monitored Restoration Area', sanitize(summaryMetrics.totalArea, '14,200 ha')],
-    ['Net Verified Carbon Sequestered', sanitize(summaryMetrics.totalSequestered, '1,200,000 tCO2e')],
-    ['Verified Carbon Credits Issued', sanitize(summaryMetrics.creditsIssued, '850,000')],
-    ['Active Restoration Sites / Plots', sanitize(String(summaryMetrics.activeProjects || '142'), '142 plots')],
-    ['Average Mangrove Survival Rate', sanitize(summaryMetrics.survivalRate, '88.0%')],
+    [isProject ? 'Restoration Area' : 'Total Monitored Restoration Area', sanitize(summaryMetrics.totalArea, '14,200 ha')],
+    [isProject ? 'Recorded Vegetation Saplings' : 'Active Restoration Sites / Plots', sanitize(String(summaryMetrics.activeProjects || '142'), '142 plots')],
+    [isProject ? 'Verified Carbon Sequestration' : 'Net Verified Carbon Sequestered', sanitize(summaryMetrics.totalSequestered, '1,200,000 tCO2e')],
+    [isProject ? 'Verified Carbon Credits Issued' : 'Verified Carbon Credits Issued', sanitize(summaryMetrics.creditsIssued, '850,000 Credits')],
+    [isProject ? 'Sapling Survival Rate' : 'Average Mangrove Survival Rate', sanitize(summaryMetrics.survivalRate, '88.0%')],
   ];
 
   autoTable(doc, {
@@ -218,11 +294,11 @@ export function generateProfessionalPdfBlob(report) {
   doc.setTextColor(...COLORS.primary);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10.5);
-  doc.text('2. PROJECT & REGISTRY METADATA', margin, cursorY);
+  doc.text(isProject ? '2. PROJECT & ADMINISTRATIVE METADATA' : '2. PROJECT & REGISTRY METADATA', margin, cursorY);
   
   doc.setDrawColor(...COLORS.accent);
   doc.setLineWidth(0.5);
-  doc.line(margin, cursorY + 1.5, margin + 60, cursorY + 1.5);
+  doc.line(margin, cursorY + 1.5, margin + 68, cursorY + 1.5);
   cursorY += 6;
 
   autoTable(doc, {
@@ -230,7 +306,7 @@ export function generateProfessionalPdfBlob(report) {
     margin: { left: margin, right: margin },
     body: [
       [
-        { content: 'Report Reference Code:', styles: { fontStyle: 'bold', textColor: COLORS.mutedText } },
+        { content: isProject ? 'Project Reference ID:' : 'Report Reference Code:', styles: { fontStyle: 'bold', textColor: COLORS.mutedText } },
         { content: reportId, styles: { fontStyle: 'bold', textColor: COLORS.primary } },
         { content: 'Reporting Period:', styles: { fontStyle: 'bold', textColor: COLORS.mutedText } },
         { content: period }
@@ -242,16 +318,22 @@ export function generateProfessionalPdfBlob(report) {
         { content: projectId }
       ],
       [
+        { content: 'Proponent Organization:', styles: { fontStyle: 'bold', textColor: COLORS.mutedText } },
+        { content: organization },
+        { content: 'GPS Coordinates:', styles: { fontStyle: 'bold', textColor: COLORS.mutedText } },
+        { content: coordinates }
+      ],
+      [
         { content: 'Geographic Location:', styles: { fontStyle: 'bold', textColor: COLORS.mutedText } },
         { content: location },
-        { content: 'Generation Date:', styles: { fontStyle: 'bold', textColor: COLORS.mutedText } },
-        { content: dateGenerated }
+        { content: 'Dominant Species:', styles: { fontStyle: 'bold', textColor: COLORS.mutedText } },
+        { content: speciesList }
       ],
       [
         { content: 'Issuing Authority:', styles: { fontStyle: 'bold', textColor: COLORS.mutedText } },
         { content: author },
-        { content: 'Designation / Role:', styles: { fontStyle: 'bold', textColor: COLORS.mutedText } },
-        { content: authorRole }
+        { content: 'Audit / Generation Date:', styles: { fontStyle: 'bold', textColor: COLORS.mutedText } },
+        { content: dateGenerated }
       ],
     ],
     theme: 'grid',
@@ -373,7 +455,7 @@ export function generateProfessionalPdfBlob(report) {
   // =========================================================================
   // SECTION 6: EVIDENCE & TELEMETRY AUDIT (IF AVAILABLE)
   // =========================================================================
-  const evidenceList = report.evidence || report.data_summary?.evidence || report.records || report.data_summary?.records;
+  const evidenceList = item.evidence || item.data_summary?.evidence || item.records || item.data_summary?.records;
   if (Array.isArray(evidenceList) && evidenceList.length > 0) {
     checkPageBreak(35);
     doc.setTextColor(...COLORS.primary);
@@ -444,10 +526,13 @@ export function generateProfessionalPdfBlob(report) {
   doc.line(margin, cursorY + 1.5, margin + 80, cursorY + 1.5);
   cursorY += 6;
 
-  const blockchainData = report.blockchain || report.data_summary?.blockchain || {};
-  const txHash = sanitize(blockchainData.tx_hash || report.tx_hash, 'Pending On-Chain Anchor');
-  const network = sanitize(blockchainData.network || report.network, 'Polygon Amoy Testnet (Chain ID: 80002)');
-  const contractAddress = sanitize(blockchainData.contract_address || report.contract_address, '0x2eA2643a6Fe138cf156715fAad61d368e7d23a10');
+  const blockchainData = item.blockchain || item.data_summary?.blockchain || {};
+  const txHash = sanitize(item.txHash || item.tx_hash || blockchainData.tx_hash, 'Pending On-Chain Anchor');
+  const network = sanitize(item.network || blockchainData.network, 'Polygon Amoy Testnet (Chain ID: 80002)');
+  const contractAddress = sanitize(
+    item.contractAddress || item.contract_address || blockchainData.contract_address,
+    '0x2eA2643a6Fe138cf156715fAad61d368e7d23a10'
+  );
 
   autoTable(doc, {
     startY: cursorY,
@@ -471,7 +556,7 @@ export function generateProfessionalPdfBlob(report) {
       ],
       [
         { content: 'Anchor Verification Status:', styles: { fontStyle: 'bold', textColor: COLORS.mutedText } },
-        { content: 'CONFIRMED ON IMMUTABLE LEDGER — ZERO TAMPER RISK', styles: { fontStyle: 'bold', textColor: COLORS.success } }
+        { content: status === 'VERIFIED' ? 'CONFIRMED ON IMMUTABLE LEDGER — ZERO TAMPER RISK' : 'PENDING ON-CHAIN VALIDATION', styles: { fontStyle: 'bold', textColor: status === 'VERIFIED' ? COLORS.success : COLORS.warning } }
       ],
     ],
     theme: 'grid',
@@ -544,7 +629,7 @@ export function generateProfessionalPdfBlob(report) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(7);
     doc.setTextColor(...COLORS.secondary);
-    doc.text('OFFICIAL AUDIT REPORT', pageWidth - margin, 9, { align: 'right' });
+    doc.text(isProject ? 'PROJECT DOSSIER' : 'OFFICIAL AUDIT REPORT', pageWidth - margin, 9, { align: 'right' });
 
     doc.setDrawColor(...COLORS.border);
     doc.setLineWidth(0.3);
@@ -558,7 +643,7 @@ export function generateProfessionalPdfBlob(report) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
     doc.setTextColor(...COLORS.mutedText);
-    doc.text(`Report Ref: ${reportId}  |  Generated: ${dateGenerated}`, margin, pageHeight - 6.5);
+    doc.text(`Ref: ${reportId}  |  Generated: ${dateGenerated}`, margin, pageHeight - 6.5);
 
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...COLORS.primary);

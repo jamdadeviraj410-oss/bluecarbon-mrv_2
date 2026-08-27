@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { MRV_DATA } from '../data/mockMrv';
 import { getProjectById } from '../../../services/projectService';
 import { getVerificationWorkspace, reviewVerification } from '../../../services/mrvService';
+import { downloadProjectReportPdf } from '../../../services/reportService';
 import Button from '../../../components/common/Button';
 import StatusBadge from '../../../components/common/StatusBadge';
 import Card, { CardHeader } from '../../../components/common/Card';
@@ -108,7 +109,7 @@ export default function ProjectVerificationPage() {
           <Button
             variant="outline"
             icon="cloud_download"
-            onClick={() => alert(`Downloading MRV data package for ${details.id}...`)}
+            onClick={() => downloadProjectReportPdf(details)}
           >
             Data Package
           </Button>

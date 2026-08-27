@@ -140,5 +140,31 @@ export async function runPdfFormattingTests() {
   const failedBlob = generateProfessionalPdfBlob(failedReport);
   testAssert(Boolean(failedBlob), 'Report with REJECTED status formats successfully');
 
+  // -------------------------------------------------------------
+  // Test 7: Project Detail Dossier (PRJ-2026-878 Object)
+  // -------------------------------------------------------------
+  const projectDossier = {
+    id: 'PRJ-2026-878',
+    name: 'Sundarbans Mangrove Restoration & Biosphere Conservation',
+    organization: 'West Bengal Coastal Forest Conservation Directorate',
+    location: 'South 24 Parganas, West Bengal',
+    area: 450,
+    plantCount: 450000,
+    survivalRate: 93.8,
+    estimatedCarbon: 45000,
+    verifiedCarbon: 42500,
+    credits: 42500,
+    status: 'VERIFIED',
+    species: ['Rhizophora mucronata', 'Avicennia marina', 'Ceriops decandra'],
+    coordinates: { lat: 21.9497, lng: 88.9002 },
+    contractAddress: '0x2eA2643a6Fe138cf156715fAad61d368e7d23a10',
+    txHash: '0x3c1d09f4a7b2e8a1d5f9c0e2a4b6c8e0a29481bc',
+    anchorHash: '0x8f2a99c91e4a3b81d77f24098231a4781bc091e',
+  };
+  const projectBlob = generateProfessionalPdfBlob(projectDossier);
+  testAssert(Boolean(projectBlob), 'Project detail object generates valid Project Dossier PDF Blob');
+  testAssert(projectBlob.type === 'application/pdf', 'Project Dossier has application/pdf MIME type');
+  testAssert(projectBlob.size > 3000, 'Project Dossier PDF contains rich formatted document stream');
+
   return results;
 }

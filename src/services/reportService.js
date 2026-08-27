@@ -197,7 +197,9 @@ export async function generateReport({ title, reportType, description, parameter
 }
 
 /**
- * Client-side file download trigger
+ * Client-side file download trigger with safe asynchronous URL revocation
+ * @param {Blob} blob
+ * @param {string} filename
  */
 export function triggerDownload(blob, filename) {
   const url = URL.createObjectURL(blob);
@@ -207,17 +209,42 @@ export function triggerDownload(blob, filename) {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 60000);
 }
 
 /**
- * Create a valid professional PDF-1.4 Blob from report metadata
- * @param {Object} rawReport
+ * Create a valid professional PDF-1.4 Blob from report or project metadata
+ * @param {Object} rawReportOrProject
  * @returns {Blob}
  */
-export function createPdfBlob(rawReport) {
-  const report = formatReport(rawReport) || rawReport;
-  return generateProfessionalPdfBlob(report);
+export function createPdfBlob(rawReportOrProject) {
+  if (!rawReportOrProject) return null;
+  const isProj = Boolean(
+    rawReportOrProject.area !== undefined ||
+    rawReportOrProject.plantCount !== undefined ||
+    rawReportOrProject.estimatedCarbon !== undefined
+  );
+  const item = isProj ? rawReportOrProject : (formatReport(rawReportOrProject) || rawReportOrProject);
+  return generateProfessionalPdfBlob(item);
+}
+
+/**
+ * Download individual project registry dossier & MRV audit PDF
+ * @param {Object} project
+ * @returns {Promise<void>}
+ */
+export async function downloadProjectReportPdf(project) {
+  if (!project) return;
+  const safeFilename = `${project.id || 'PRJ'}-Registry_Dossier.pdf`;
+  try {
+    const pdfBlob = createPdfBlob(project);
+    triggerDownload(pdfBlob, safeFilename);
+  } catch (err) {
+    console.error('Failed to generate project dossier PDF:', err);
+    throw new Error('Failed to generate project dossier PDF. Please try again.', { cause: err });
+  }
 }
 
 /**
@@ -227,6 +254,15 @@ export function createPdfBlob(rawReport) {
  */
 export async function downloadReportPdf(rawReport) {
   if (!rawReport) return;
+  const isProj = Boolean(
+    rawReport.area !== undefined ||
+    rawReport.plantCount !== undefined ||
+    rawReport.estimatedCarbon !== undefined
+  );
+  if (isProj) {
+    return downloadProjectReportPdf(rawReport);
+  }
+
   const report = formatReport(rawReport) || rawReport;
   const safeFilename = `${report.report_code || report.id || 'REPORT'}-${(report.type || 'Report').replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`;
 
@@ -253,7 +289,7 @@ export async function downloadReportPdf(rawReport) {
     }
   }
 
-  // 2. Fallback: generate authentic PDF-1.4 Blob
+  // 2. Fallback: generate authentic professional PDF Blob
   try {
     const pdfBlob = createPdfBlob(report);
     triggerDownload(pdfBlob, safeFilename);

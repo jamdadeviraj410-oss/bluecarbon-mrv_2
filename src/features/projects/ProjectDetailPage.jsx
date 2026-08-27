@@ -9,6 +9,7 @@ import { getDroneSurveys } from '../../services/droneService';
 import StatusBadge from '../../components/common/StatusBadge';
 import { formatNumber, formatCarbon, formatArea, formatDate } from '../../utils/formatters';
 import { ROUTES } from '../../utils/constants';
+import { downloadProjectReportPdf } from '../../services/reportService';
 
 export default function ProjectDetailPage() {
   const { id } = useParams();
@@ -404,7 +405,7 @@ export default function ProjectDetailPage() {
             Edit Project
           </Link>
           <button
-            onClick={() => alert(`Downloading registry dossier for ${project.id}...`)}
+            onClick={() => downloadProjectReportPdf(project)}
             className="px-4 py-2 rounded-xl border border-primary text-primary font-title-md hover:bg-primary/5 transition-colors text-sm flex items-center gap-1.5"
           >
             <span className="material-symbols-outlined text-[18px]">download</span>
