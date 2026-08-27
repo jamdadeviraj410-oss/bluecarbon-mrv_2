@@ -167,7 +167,13 @@ export async function getMrvAnomalies(projectId) {
  * @returns {Promise<{ overallScore: number, riskLevel: string, summary: Object, anomalies: Array, crossChecks: Array }>}
  */
 export async function runMrvAnomalyAudit(projectId = 'PRJ-2023-089') {
-  const project = await getProjectById(projectId) || {
+  let project = null;
+  try {
+    project = await getProjectById(projectId);
+  } catch (_) {
+    project = null;
+  }
+  project = project || {
     id: projectId,
     name: 'Maharashtra Mangrove Restoration',
     area: 128.0,

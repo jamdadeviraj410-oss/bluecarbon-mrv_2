@@ -322,5 +322,76 @@ export async function runBlockchainProvenanceTests() {
     assert.strictEqual(record.statusCode, 'PENDING');
   });
 
+  // Test 29: formatBlockchainRecord preserves real UUID and rejects 'Pending' string
+  await recordTest('formatBlockchainRecord sets valid UUID submissionId and null for non-UUIDs', async () => {
+    const { formatBlockchainRecord } = await import('../features/blockchain/blockchainService.js');
+    const validUuid = '123e4567-e89b-12d3-a456-426614174000';
+    const recWithUuid = formatBlockchainRecord({
+      id: 'rec-1',
+      submission_id: validUuid,
+    });
+    assert.strictEqual(recWithUuid.submissionId, validUuid, 'submissionId must contain real UUID');
+    assert.strictEqual(recWithUuid.mrvId, validUuid, 'mrvId must contain real UUID');
+
+    const recWithPending = formatBlockchainRecord({
+      id: 'rec-2',
+      payload: { submission_id: 'Pending' },
+    });
+    assert.strictEqual(recWithPending.submissionId, null, 'submissionId must be null for "Pending" string');
+    assert.strictEqual(recWithPending.mrvId, null, 'mrvId must be null for "Pending" string');
+  });
+
+  // Test 30: Frontend blockchainService throws on invalid UUID before invoking Edge Functions
+  await recordTest('Frontend blockchainService validates UUID before Edge Function invocation', async () => {
+    const { anchorMRVSubmission, verifyMRVAnchor } = await import('../services/blockchainService.js');
+    await assert.rejects(
+      async () => await anchorMRVSubmission('Pending'),
+      /Invalid submissionId/i,
+      'anchorMRVSubmission must reject "Pending" with invalid submissionId error'
+    );
+    await assert.rejects(
+      async () => await verifyMRVAnchor('12345'),
+      /Invalid submissionId/i,
+      'verifyMRVAnchor must reject short string with invalid submissionId error'
+    );
+  });
+
+  // Test 31: Canonical JSON generation is identical between anchor-mrv and verify-mrv
+  await recordTest('Canonical JSON structure and hashing is identical in anchor-mrv and verify-mrv', () => {
+    const anchorPath = path.resolve('supabase', 'functions', 'anchor-mrv', 'index.ts');
+    const verifyPath = path.resolve('supabase', 'functions', 'verify-mrv', 'index.ts');
+    const anchorCode = fs.readFileSync(anchorPath, 'utf8');
+    const verifyCode = fs.readFileSync(verifyPath, 'utf8');
+
+    assert(anchorCode.includes('function canonicalize('), 'anchor-mrv must define canonicalize');
+    assert(verifyCode.includes('function canonicalize('), 'verify-mrv must define canonicalize');
+    assert(anchorCode.includes('file_size_bytes: Number(e.file_size || e.file_size_bytes || 0)'), 'anchor-mrv must normalize file_size');
+    assert(verifyCode.includes('file_size_bytes: Number(e.file_size || e.file_size_bytes || 0)'), 'verify-mrv must normalize file_size');
+  });
+
+  // Test 32: Edge Functions enforce UUID regex and return 400 for invalid inputs
+  await recordTest('Edge Functions validate UUID format with 400 Bad Request', () => {
+    const anchorCode = fs.readFileSync(path.resolve('supabase', 'functions', 'anchor-mrv', 'index.ts'), 'utf8');
+    const verifyCode = fs.readFileSync(path.resolve('supabase', 'functions', 'verify-mrv', 'index.ts'), 'utf8');
+    assert(anchorCode.includes('UUID_REGEX'), 'anchor-mrv must define UUID_REGEX');
+    assert(verifyCode.includes('UUID_REGEX'), 'verify-mrv must define UUID_REGEX');
+    assert(anchorCode.includes('status: 400') || anchorCode.includes('json(400,'), 'anchor-mrv must return 400 on invalid input');
+    assert(verifyCode.includes('status: 400') || verifyCode.includes('json(400,'), 'verify-mrv must return 400 on invalid input');
+  });
+
+  // Test 33: anchor-mrv checks user role and enforces RBAC authorization (403)
+  await recordTest('anchor-mrv enforces role authorization (NCCR_ADMIN, VERIFIER)', () => {
+    const anchorCode = fs.readFileSync(path.resolve('supabase', 'functions', 'anchor-mrv', 'index.ts'), 'utf8');
+    assert(anchorCode.includes('allowedRoles.includes(role)'), 'anchor-mrv must check allowedRoles');
+    assert(anchorCode.includes('json(403,'), 'anchor-mrv must return 403 when user is unauthorized');
+  });
+
+  // Test 34: verify-mrv returns clear NOT_ANCHORED_YET status when submission not anchored
+  await recordTest('verify-mrv returns structured NOT_ANCHORED_YET for unanchored submission', () => {
+    const verifyCode = fs.readFileSync(path.resolve('supabase', 'functions', 'verify-mrv', 'index.ts'), 'utf8');
+    assert(verifyCode.includes('NOT_ANCHORED_YET'), 'verify-mrv must return NOT_ANCHORED_YET reason');
+    assert(verifyCode.includes('verified: false'), 'verify-mrv must return verified: false');
+  });
+
   return testResults;
 }

@@ -10,7 +10,18 @@ export default function MrvBlockchainAnchorPage() {
   const [error, setError] = useState('');
   const [copiedHash, setCopiedHash] = useState(false);
 
+  const isValidUuid = Boolean(
+    submissionId &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(submissionId)
+  );
+
+  const effectiveError = error || (!isValidUuid ? `Invalid MRV Submission ID ('${submissionId || 'missing'}'). Expected a valid database UUID (e.g., 550e8400-e29b-41d4-a716-446655440000). Please select an authentic verified MRV submission from the registry.` : '');
+
   async function run(action, name) {
+    if (!isValidUuid) {
+      setError(`Invalid MRV Submission ID ('${submissionId || 'missing'}'). A valid database UUID is required.`);
+      return;
+    }
     setBusy(true);
     setActiveAction(name);
     setError('');
@@ -57,14 +68,14 @@ export default function MrvBlockchainAnchorPage() {
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-primary tracking-tight">MRV On-Chain Provenance Anchor</h1>
             <p className="text-sm text-on-surface-variant break-all mt-1">
-              Submission UUID: <span className="font-mono-data text-on-surface font-medium">{submissionId}</span>
+              Submission UUID: <span className={`font-mono-data font-medium ${isValidUuid ? 'text-on-surface' : 'text-error'}`}>{submissionId || 'None'}</span>
             </p>
           </div>
           <div className="flex flex-wrap gap-2.5 shrink-0">
             <button
-              disabled={busy}
+              disabled={busy || !isValidUuid}
               onClick={() => run(anchorMRVSubmission, 'anchor')}
-              className="px-4 py-2.5 rounded-lg bg-primary text-on-primary font-title-md text-sm hover:bg-primary-container disabled:opacity-50 transition-colors shadow-sm inline-flex items-center gap-2 cursor-pointer"
+              className="px-4 py-2.5 rounded-lg bg-primary text-on-primary font-title-md text-sm hover:bg-primary-container disabled:opacity-50 transition-colors shadow-sm inline-flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed"
             >
               <span className="material-symbols-outlined text-[18px]">
                 {busy && activeAction === 'anchor' ? 'sync' : 'hub'}
@@ -72,9 +83,9 @@ export default function MrvBlockchainAnchorPage() {
               <span>{busy && activeAction === 'anchor' ? 'Anchoring to Polygon…' : 'Anchor on Polygon'}</span>
             </button>
             <button
-              disabled={busy}
+              disabled={busy || !isValidUuid}
               onClick={() => run(verifyMRVAnchor, 'verify')}
-              className="px-4 py-2.5 rounded-lg border border-primary text-primary font-title-md text-sm hover:bg-primary/5 disabled:opacity-50 transition-colors inline-flex items-center gap-2 cursor-pointer"
+              className="px-4 py-2.5 rounded-lg border border-primary text-primary font-title-md text-sm hover:bg-primary/5 disabled:opacity-50 transition-colors inline-flex items-center gap-2 cursor-pointer disabled:cursor-not-allowed"
             >
               <span className="material-symbols-outlined text-[18px]">
                 {busy && activeAction === 'verify' ? 'sync' : 'verified_user'}
@@ -100,12 +111,12 @@ export default function MrvBlockchainAnchorPage() {
         </div>
 
         {/* Error Alert */}
-        {error && (
+        {effectiveError && (
           <div className="p-4 rounded-xl bg-error-container text-on-error-container text-sm flex items-start gap-3">
             <span className="material-symbols-outlined text-error shrink-0">error</span>
             <div className="flex flex-col gap-1">
               <span className="font-bold">Operation Notice</span>
-              <span>{error}</span>
+              <span>{effectiveError}</span>
             </div>
           </div>
         )}

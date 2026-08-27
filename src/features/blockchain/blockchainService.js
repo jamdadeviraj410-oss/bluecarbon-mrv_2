@@ -127,6 +127,13 @@ export function formatBlockchainRecord(r) {
     { type: 'Polygon', code: r.tx_hash ? `${networkShort} ${r.block_number ? `#${r.block_number}` : ''}` : 'Pending On-Chain Anchor', label: r.tx_hash ? `${networkFull}` : 'Awaiting Smart Contract Anchor' },
   ];
 
+  const rawSubmissionId = r.submission_id || r.payload?.submission_id || null;
+  const isSubmissionUuid = Boolean(
+    rawSubmissionId &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawSubmissionId)
+  );
+  const validSubmissionId = isSubmissionUuid ? rawSubmissionId : null;
+
   return {
     isDemo,
     isSimulated: isDemo,
@@ -135,7 +142,8 @@ export function formatBlockchainRecord(r) {
     projectName: project.name || 'Coastal Restoration Project',
     projectId: project.project_code || project.id || 'Pending',
     mrvCode,
-    mrvId: r.payload?.submission_id || 'Pending',
+    mrvId: validSubmissionId,
+    submissionId: validSubmissionId,
     organization: org.name || 'Not Available',
     location: project.location_name || 'Coastal Region',
     tCO2e: carbonValue,

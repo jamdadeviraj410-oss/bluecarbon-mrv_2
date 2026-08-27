@@ -11,11 +11,13 @@ try {
   // Continue if .env is absent in CI
 }
 
-import { runMrvIntelligenceTests } from './mrv_intelligence.test.js';
-import { runBlockchainProvenanceTests } from './blockchain_provenance.test.js';
-import { runAuthRbacTests } from './auth_rbac_onboarding.test.js';
+process.env.VITE_SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://test-project.supabase.co';
+process.env.VITE_SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || 'test-anon-key-placeholder';
 
 async function main() {
+  const { runMrvIntelligenceTests } = await import('./mrv_intelligence.test.js');
+  const { runBlockchainProvenanceTests } = await import('./blockchain_provenance.test.js');
+  const { runAuthRbacTests } = await import('./auth_rbac_onboarding.test.js');
   console.log('==================================================');
   console.log('    BLUECARBON MRV COMPREHENSIVE TEST SUITE       ');
   console.log('==================================================\n');

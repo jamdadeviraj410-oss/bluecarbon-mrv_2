@@ -413,13 +413,28 @@ export default function BlockchainRecordDetailPage() {
             </div>
 
             <div className="pt-2 border-t border-surface-container-high flex flex-col gap-2">
-              <Link
-                to={`/mrv/blockchain/${record.mrvId}`}
-                className="w-full py-2.5 px-4 bg-primary text-on-primary rounded-lg font-title-md text-sm text-center hover:bg-primary-container transition-colors shadow-sm flex items-center justify-center gap-2"
-              >
-                <span className="material-symbols-outlined text-[18px]">fingerprint</span>
-                <span>Verify MRV On-Chain</span>
-              </Link>
+              {record.submissionId ? (
+                <Link
+                  to={`/mrv/blockchain/${record.submissionId}`}
+                  className="w-full py-2.5 px-4 bg-primary text-on-primary rounded-lg font-title-md text-sm text-center hover:bg-primary-container transition-colors shadow-sm flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-[18px]">fingerprint</span>
+                  <span>Verify MRV On-Chain</span>
+                </Link>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  <button
+                    disabled
+                    className="w-full py-2.5 px-4 bg-surface-container text-on-surface-variant/60 rounded-lg font-title-md text-sm text-center border border-outline-variant/30 flex items-center justify-center gap-2 cursor-not-allowed opacity-75"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">fingerprint</span>
+                    <span>Verify MRV On-Chain</span>
+                  </button>
+                  <span className="text-[11px] text-on-surface-variant text-center">
+                    A real verified MRV submission must be selected to initiate on-chain verification.
+                  </span>
+                </div>
+              )}
               <Link
                 to="/admin/blockchain"
                 className="w-full py-2.5 px-4 bg-surface-container text-on-surface rounded-lg font-title-md text-sm text-center hover:bg-surface-container-highest transition-colors"

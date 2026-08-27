@@ -2,12 +2,16 @@ import { useState, useEffect } from 'react';
 import PageHeader from '../../../components/common/PageHeader';
 import Card from '../../../components/common/Card';
 import Button from '../../../components/common/Button';
-import { getReports } from '../../../services/reportService';
+import { getReports, downloadReportPdf } from '../../../services/reportService';
+import ReportPreviewModal from '../components/ReportPreviewModal';
 
 export default function CommunityReportsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
   const [reports, setReports] = useState([]);
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [downloadingId, setDownloadingId] = useState(null);
+  const [actionError, setActionError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -28,13 +32,28 @@ export default function CommunityReportsPage() {
     loadReports();
   }, []);
 
+  const handleDownload = async (report) => {
+    const reportKey = report.id || report.report_code;
+    setDownloadingId(reportKey);
+    setActionError(null);
+    try {
+      await downloadReportPdf(report);
+    } catch (err) {
+      console.error('PDF download error:', err);
+      setActionError(`Failed to download PDF for ${report.report_code || report.title}. Please try again.`);
+      setTimeout(() => setActionError(null), 5000);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
   const filteredReports = reports.filter(r => {
     const matchesSearch = r.title?.toLowerCase().includes(searchTerm.toLowerCase()) || r.report_code?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = typeFilter === 'All' || r.report_type === typeFilter;
+    const matchesType = typeFilter === 'All' || r.report_type === typeFilter || r.type === typeFilter;
     return matchesSearch && matchesType;
   });
 
-  const uniqueTypes = ['All', ...new Set(reports.map(r => r.report_type).filter(Boolean))];
+  const uniqueTypes = ['All', ...new Set(reports.map(r => r.report_type || r.type).filter(Boolean))];
 
   return (
     <div className="flex flex-col w-full p-4 sm:p-6 lg:p-8 gap-6 max-w-[1600px] mx-auto font-body-md text-on-surface min-h-screen">
@@ -42,6 +61,18 @@ export default function CommunityReportsPage() {
         title="Reports & Analytics" 
         subtitle="Access generated impact reports, MRV summaries, and financial analytics for community projects."
       />
+
+      {actionError && (
+        <div className="p-3 bg-error/10 text-error rounded-xl border border-error/20 text-xs flex items-center justify-between animate-in fade-in duration-200">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[16px]">error</span>
+            <span>{actionError}</span>
+          </div>
+          <button type="button" onClick={() => setActionError(null)} className="text-error hover:opacity-75">
+            ✕
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-4 items-center mb-2">
         <div className="relative flex-1 w-full max-w-md">
@@ -83,7 +114,7 @@ export default function CommunityReportsPage() {
               <div className="flex justify-between items-start">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                    <span className="material-symbols-outlined">{report.report_type === 'Financial' ? 'account_balance' : report.report_type === 'MRV Audit' ? 'verified' : 'analytics'}</span>
+                    <span className="material-symbols-outlined">{report.report_type === 'Financial' || report.type === 'Financial' ? 'account_balance' : report.report_type === 'MRV Audit' || report.type === 'MRV Audit' ? 'verified' : 'analytics'}</span>
                   </div>
                   <div>
                     <span className="font-mono-data text-xs text-on-surface-variant">{report.report_code || `REP-${report.id?.substring(0, 4)}`}</span>
@@ -101,18 +132,26 @@ export default function CommunityReportsPage() {
                    {report.period}
                  </span>
                  <span className="px-2 py-1 bg-surface-container-high rounded-md text-on-surface-variant font-semibold">
-                   {report.report_type}
+                   {report.report_type || report.type}
                  </span>
               </div>
 
               <div className="mt-auto pt-4 border-t border-outline-variant/20 flex justify-between items-center">
                 <div className="flex flex-col">
                   <span className="text-[10px] text-on-surface-variant uppercase font-semibold">Generated On</span>
-                  <span className="font-mono-data text-xs">{report.created_at?.split('T')[0] || new Date().toISOString().split('T')[0]}</span>
+                  <span className="font-mono-data text-xs">{report.dateGenerated || report.date || report.created_at?.split('T')[0] || new Date().toISOString().split('T')[0]}</span>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" icon="visibility">View</Button>
-                  <Button variant="outline" size="sm" icon="download">PDF</Button>
+                  <Button variant="outline" size="sm" icon="visibility" onClick={() => setSelectedReport(report)}>View</Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    icon="download"
+                    disabled={downloadingId === (report.id || report.report_code)}
+                    onClick={() => handleDownload(report)}
+                  >
+                    {downloadingId === (report.id || report.report_code) ? '...' : 'PDF'}
+                  </Button>
                 </div>
               </div>
             </Card>
@@ -124,6 +163,14 @@ export default function CommunityReportsPage() {
           )}
         </div>
       )}
+
+      {/* Report Preview Modal */}
+      <ReportPreviewModal
+        report={selectedReport}
+        isOpen={Boolean(selectedReport)}
+        onClose={() => setSelectedReport(null)}
+      />
     </div>
   );
 }
+

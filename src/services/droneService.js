@@ -9,10 +9,11 @@
 import { supabase } from '../lib/supabase.js';
 
 // Seed Drone Surveys (Baseline 2023 vs Monitored Restoration 2026)
+// project_id references public.projects(id) UUID for PRJ-2023-089
 export const INITIAL_DRONE_SURVEYS = [
   {
-    id: 'drone-srv-01',
-    project_id: 'PRJ-2023-089',
+    id: 'd0000000-0000-0000-0000-000000000001',
+    project_id: 'b0000000-0000-0000-0000-000000000001',
     survey_code: 'DRONE-2023-BASELINE-01',
     survey_date: '2023-02-10',
     survey_type: 'BASELINE',
@@ -64,8 +65,8 @@ export const INITIAL_DRONE_SURVEYS = [
     created_at: '2023-02-11T09:00:00Z',
   },
   {
-    id: 'drone-srv-02',
-    project_id: 'PRJ-2023-089',
+    id: 'd0000000-0000-0000-0000-000000000002',
+    project_id: 'b0000000-0000-0000-0000-000000000001',
     survey_code: 'DRONE-2026-RESTORATION-03',
     survey_date: '2026-08-12',
     survey_type: 'RESTORATION_MONITORING',
@@ -120,6 +121,8 @@ export const INITIAL_DRONE_SURVEYS = [
 
 let inMemoryDroneSurveys = [...INITIAL_DRONE_SURVEYS];
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * Fetch all drone surveys
  * @param {string} [projectId]
@@ -127,31 +130,67 @@ let inMemoryDroneSurveys = [...INITIAL_DRONE_SURVEYS];
  */
 export async function getDroneSurveys(projectId) {
   try {
+    let resolvedProjectId = projectId;
+    if (projectId && !UUID_REGEX.test(projectId)) {
+      // Look up corresponding project UUID by project_code
+      try {
+        const { data: projData } = await supabase
+          .from('projects')
+          .select('id')
+          .eq('project_code', projectId)
+          .maybeSingle();
+        if (projData?.id) {
+          resolvedProjectId = projData.id;
+        } else if (projectId === 'PRJ-2023-089') {
+          resolvedProjectId = 'b0000000-0000-0000-0000-000000000001';
+        } else {
+          resolvedProjectId = null;
+        }
+      } catch {
+        resolvedProjectId = projectId === 'PRJ-2023-089' ? 'b0000000-0000-0000-0000-000000000001' : null;
+      }
+    }
+
     let query = supabase.from('drone_surveys').select('*').order('survey_date', { ascending: false });
-    if (projectId) {
-      query = query.eq('project_id', projectId);
+    if (resolvedProjectId) {
+      query = query.eq('project_id', resolvedProjectId);
     }
     const { data, error } = await query;
-    if (!error && data && data.length > 0) {
+    if (error) {
+      console.error('Supabase getDroneSurveys error:', error);
+    } else if (data && data.length > 0) {
+      // Synchronize in-memory cache with fetched rows
+      data.forEach((row) => {
+        const existingIdx = inMemoryDroneSurveys.findIndex((s) => s.id === row.id || s.survey_code === row.survey_code);
+        if (existingIdx >= 0) {
+          inMemoryDroneSurveys[existingIdx] = { ...inMemoryDroneSurveys[existingIdx], ...row };
+        } else {
+          inMemoryDroneSurveys.push(row);
+        }
+      });
       return data;
     }
   } catch (err) {
-    console.warn('Using local drone surveys cache:', err);
+    console.error('Failed to query drone_surveys from Supabase:', err);
   }
 
+  // Fallback data for local/demo resilience
   if (projectId) {
-    return inMemoryDroneSurveys.filter((s) => s.project_id === projectId);
+    return inMemoryDroneSurveys.filter(
+      (s) => s.project_id === projectId || (projectId === 'PRJ-2023-089' && s.project_id === 'b0000000-0000-0000-0000-000000000001')
+    );
   }
   return inMemoryDroneSurveys;
 }
 
 /**
- * Get single drone survey by ID
+ * Get single drone survey by ID or survey code
  * @param {string} id
  * @returns {Object|undefined}
  */
 export function getDroneSurveyById(id) {
-  return inMemoryDroneSurveys.find((s) => s.id === id || s.survey_code === id);
+  if (!id) return undefined;
+  return inMemoryDroneSurveys.find((s) => s.id === id || s.survey_code === id || s.id === `drone-srv-0${id.slice(-1)}`);
 }
 
 /**
@@ -161,8 +200,8 @@ export function getDroneSurveyById(id) {
  */
 export async function createDroneSurvey(surveyPayload) {
   const newSurvey = {
-    id: `drone-srv-${Date.now()}`,
-    project_id: surveyPayload.projectId || 'PRJ-2023-089',
+    id: `d0000000-0000-0000-0000-${String(Date.now()).padStart(12, '0').slice(-12)}`,
+    project_id: surveyPayload.projectId || 'b0000000-0000-0000-0000-000000000001',
     survey_code: surveyPayload.surveyCode || `DRONE-${new Date().getFullYear()}-SRV-${Math.floor(100 + Math.random() * 900)}`,
     survey_date: surveyPayload.surveyDate || new Date().toISOString().split('T')[0],
     survey_type: surveyPayload.surveyType || 'RESTORATION_MONITORING',
@@ -209,11 +248,13 @@ export async function createDroneSurvey(surveyPayload) {
       .select()
       .single();
 
-    if (!error && data) {
+    if (error) {
+      console.error('Supabase createDroneSurvey error:', error);
+    } else if (data) {
       newSurvey.id = data.id;
     }
   } catch (err) {
-    console.warn('Drone survey insertion notice:', err);
+    console.error('Drone survey insertion exception:', err);
   }
 
   inMemoryDroneSurveys.unshift(newSurvey);
@@ -267,6 +308,18 @@ export function getBeforeAfterComparison(beforeId, afterId) {
 }
 
 /**
+ * Helper to resolve survey from survey object or ID
+ * @param {string|Object} surveyOrId
+ * @returns {Object}
+ */
+function resolveSurvey(surveyOrId) {
+  if (typeof surveyOrId === 'object' && surveyOrId !== null) {
+    return surveyOrId;
+  }
+  return getDroneSurveyById(surveyOrId) || inMemoryDroneSurveys[0];
+}
+
+/**
  * =========================================================================
  * INTEGRATION CONTRACT FOR MEMBER 1 (GIS & MAP LEAD)
  * =========================================================================
@@ -280,16 +333,51 @@ export const DroneMapOverlayAdapter = {
   /**
    * Returns GeoJSON FeatureCollection for rendering on map layers
    */
-  getGeoJsonBoundary(surveyId) {
-    const survey = getDroneSurveyById(surveyId) || inMemoryDroneSurveys[0];
-    return survey.geojson_data;
+  getGeoJsonBoundary(surveyOrId) {
+    const survey = resolveSurvey(surveyOrId);
+    let geo = survey.geojson_data;
+    if (typeof geo === 'string') {
+      try {
+        geo = JSON.parse(geo);
+      } catch {
+        geo = null;
+      }
+    }
+    return geo || inMemoryDroneSurveys[0].geojson_data;
   },
 
   /**
    * Returns Raster Overlay metadata with GPS coordinates bounding box
    */
-  getRasterOverlayConfig(surveyId) {
-    const survey = getDroneSurveyById(surveyId) || inMemoryDroneSurveys[1];
+  getRasterOverlayConfig(surveyOrId) {
+    const survey = resolveSurvey(surveyOrId);
+    let bounds = [
+      [16.9880, 73.3100], // Southwest [lat, lng]
+      [16.9930, 73.3150], // Northeast [lat, lng]
+    ];
+
+    // Compute bounding box dynamically from geojson if available
+    const geo = this.getGeoJsonBoundary(survey);
+    if (geo?.features?.[0]?.geometry?.coordinates?.[0]?.length > 0) {
+      const coords = geo.features[0].geometry.coordinates[0];
+      let minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
+      coords.forEach(([lng, lat]) => {
+        if (lat < minLat) minLat = lat;
+        if (lat > maxLat) maxLat = lat;
+        if (lng < minLng) minLng = lng;
+        if (lng > maxLng) maxLng = lng;
+      });
+      if (minLat <= maxLat && minLng <= maxLng) {
+        bounds = [
+          [minLat, minLng],
+          [maxLat, maxLng],
+        ];
+      }
+    }
+
+    const centerLat = (bounds[0][0] + bounds[1][0]) / 2;
+    const centerLng = (bounds[0][1] + bounds[1][1]) / 2;
+
     return {
       surveyId: survey.id,
       code: survey.survey_code,
@@ -297,12 +385,9 @@ export const DroneMapOverlayAdapter = {
       stage: survey.stage,
       orthomosaicUrl: survey.orthomosaic_url,
       ndviMapUrl: survey.ndvi_map_url,
-      bounds: [
-        [16.9880, 73.3100], // Southwest [lat, lng]
-        [16.9930, 73.3150], // Northeast [lat, lng]
-      ],
+      bounds,
       resolutionGsd: survey.resolution_cm_per_pixel,
-      center: [16.9905, 73.3125],
+      center: [centerLat, centerLng],
       zoom: 17,
       layerAttribution: 'NCCR Drone MRV Survey Dept',
     };
@@ -311,16 +396,18 @@ export const DroneMapOverlayAdapter = {
   /**
    * Export GeoJSON format string for external GIS tools (QGIS, ArcGIS)
    */
-  exportGeoJsonString(surveyId) {
-    const survey = getDroneSurveyById(surveyId) || inMemoryDroneSurveys[0];
-    return JSON.stringify(survey.geojson_data, null, 2);
+  exportGeoJsonString(surveyOrId) {
+    const survey = resolveSurvey(surveyOrId);
+    const geo = this.getGeoJsonBoundary(survey);
+    return JSON.stringify(geo, null, 2);
   },
 
   /**
    * Export KML format string
    */
-  exportKmlString(surveyId) {
-    const survey = getDroneSurveyById(surveyId) || inMemoryDroneSurveys[0];
+  exportKmlString(surveyOrId) {
+    const survey = resolveSurvey(surveyOrId);
     return survey.kml_raw || '';
   },
 };
+

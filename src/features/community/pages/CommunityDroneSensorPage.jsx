@@ -6,11 +6,13 @@ import StatusBadge from '../../../components/common/StatusBadge';
 import { getDroneSurveys } from '../../../services/droneService';
 import { getSensors } from '../../../services/sensorService';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import DroneSurveyMapModal from '../components/DroneSurveyMapModal';
 
 export default function CommunityDroneSensorPage() {
   const [activeTab, setActiveTab] = useState('drones');
   const [surveys, setSurveys] = useState([]);
   const [sensors, setSensors] = useState([]);
+  const [selectedSurvey, setSelectedSurvey] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -90,7 +92,7 @@ export default function CommunityDroneSensorPage() {
                           <p className="font-bold text-on-surface text-sm">{survey.survey_code}</p>
                           <p className="text-xs text-on-surface-variant font-mono-data">{survey.survey_date}</p>
                          </div>
-                         <Button variant="primary" size="sm">View Map</Button>
+                         <Button variant="primary" size="sm" onClick={() => setSelectedSurvey(survey)}>View Map</Button>
                       </div>
                     </div>
                   </div>
@@ -179,6 +181,14 @@ export default function CommunityDroneSensorPage() {
           )}
         </div>
       )}
+
+      {/* Drone Survey Spatial Map Modal */}
+      <DroneSurveyMapModal
+        survey={selectedSurvey}
+        isOpen={Boolean(selectedSurvey)}
+        onClose={() => setSelectedSurvey(null)}
+      />
     </div>
   );
 }
+
