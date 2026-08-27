@@ -79,6 +79,16 @@ async function main() {
     totalFailed++;
   }
 
+  // 4. PDF Formatting Tests
+  try {
+    const { runPdfFormattingTests } = await import('./pdf_formatting.test.js');
+    const results4 = await runPdfFormattingTests();
+    totalPassed += results4.length;
+  } catch (err) {
+    console.error('  [ERROR] PDF Formatting tests failed with exception:', err);
+    totalFailed++;
+  }
+
   console.log('\n==================================================');
   console.log(`OVERALL TEST SUMMARY: ${totalPassed} passed, ${totalFailed} failed (${totalPassed + totalFailed} total)`);
   console.log('==================================================');

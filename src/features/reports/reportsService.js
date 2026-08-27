@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '../../lib/supabase';
+import { generateProfessionalPdfBlob } from '../../utils/reportPdfGenerator';
 
 export const reportKPIs = {
   totalRestorationArea: {
@@ -205,7 +206,7 @@ export function formatReport(r) {
       format = parsed.format || format;
       const stateSuffix = parsed.state && parsed.state !== 'All States' ? ` — ${parsed.state}` : '';
       title = `${type}${stateSuffix} (${parsed.dateRange || parsed.period || r.period || 'Last 12 Months'})`;
-    } catch (e) {
+    } catch {
       title = type;
     }
   }
@@ -306,7 +307,7 @@ export async function generateNewReport(options = {}) {
         format = (parsed.format || 'PDF').toUpperCase();
         period = parsed.dateRange || parsed.period || 'Last 12 Months';
         state = parsed.state || 'All States';
-      } catch (e) {
+      } catch {
         type = options;
       }
     } else {
@@ -320,13 +321,11 @@ export async function generateNewReport(options = {}) {
   const reportCode = `REP-${new Date().getFullYear()}-${Math.floor(Math.random() * 900) + 100}`;
   const cryptoHash = '0x' + Array.from(crypto.getRandomValues(new Uint8Array(20))).map(b => b.toString(16).padStart(2, '0')).join('');
 
-  const description = `Official ${type} covering ${state === 'All States' ? 'all national coastal zones' : state} for the period ${period}. Comprehensive audit reconciles on-ground sensor telemetry, satellite GIS boundaries, and verified carbon credit issuance.`;
-
   const summaryMetrics = {
-    totalArea: '14,200 ha',
-    totalSequestered: '1,200,000 tCO2e',
-    creditsIssued: '850,000',
-    activeProjects: 142,
+    totalArea: state === 'Maharashtra' ? '4,200 ha' : state === 'Gujarat' ? '3,100 ha' : '14,200 ha',
+    totalSequestered: state === 'Maharashtra' ? '380,000 tCO2e' : state === 'Gujarat' ? '290,000 tCO2e' : '1,200,000 tCO2e',
+    creditsIssued: state === 'Maharashtra' ? '270,000' : state === 'Gujarat' ? '205,000' : '850,000',
+    activeProjects: state === 'Maharashtra' ? 42 : state === 'Gujarat' ? 31 : 142,
     survivalRate: '88.0%',
   };
 
@@ -479,95 +478,6 @@ function triggerDownload(blob, filename) {
 }
 
 function createPdfBlob(report) {
-  const escapePdfText = (str) => String(str || '').replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
-
-  const id = escapePdfText(report.id || 'REP-2026');
-  const title = escapePdfText(report.title || 'National Blue Carbon MRV Report');
-  const type = escapePdfText(report.type || 'National Summary Report');
-  const period = escapePdfText(report.period || 'Annual 2026');
-  const date = escapePdfText(report.dateGenerated || report.date || new Date().toLocaleDateString('en-GB'));
-  const author = escapePdfText(report.author || 'Dr. A. Sharma (Director, NCCR)');
-  const hash = escapePdfText(report.hash || '0x8f2a...3b1c');
-  const area = escapePdfText(report.summaryMetrics?.totalArea || '14,200 ha');
-  const carbon = escapePdfText(report.summaryMetrics?.totalSequestered || '1,200,000 tCO2e');
-  const credits = escapePdfText(report.summaryMetrics?.creditsIssued || '850,000');
-  const projects = escapePdfText(String(report.summaryMetrics?.activeProjects || 142));
-  const survival = escapePdfText(report.summaryMetrics?.survivalRate || '88.0%');
-
-  const textLines = [
-    'BT',
-    '/F1 18 Tf',
-    '50 770 Td',
-    '(BLUECARBON MRV REGISTRY - OFFICIAL REPORT) Tj',
-    '/F1 11 Tf',
-    '0 -24 Td',
-    `(Report ID: ${id}  |  Period: ${period}  |  Date: ${date}) Tj`,
-    '0 -18 Td',
-    `(Title: ${title}) Tj`,
-    '0 -18 Td',
-    `(Report Type: ${type}  |  Status: COMPLETED) Tj`,
-    '0 -18 Td',
-    `(Issuing Authority: ${author}) Tj`,
-    '0 -28 Td',
-    '/F1 14 Tf',
-    '(EXECUTIVE SUMMARY & KEY METRICS) Tj',
-    '/F1 10 Tf',
-    '0 -20 Td',
-    `(1. Total Coastal Restoration Area: ${area}) Tj`,
-    '0 -16 Td',
-    `(2. Net Carbon Sequestered: ${carbon}) Tj`,
-    '0 -16 Td',
-    `(3. Verified Blue Carbon Credits Issued: ${credits}) Tj`,
-    '0 -16 Td',
-    `(4. Active Monitored Restoration Sites: ${projects} plots) Tj`,
-    '0 -16 Td',
-    `(5. Average Mangrove Sapling Survival Rate: ${survival}) Tj`,
-    '0 -28 Td',
-    '/F1 14 Tf',
-    '(COMPLIANCE METHODOLOGIES & AUDIT VERIFICATION) Tj',
-    '/F1 10 Tf',
-    '0 -20 Td',
-    '(1. Verra VM0033 Tidal Wetland Restoration Standard v2.1) Tj',
-    '0 -16 Td',
-    '(2. NCCR National Blue Carbon MRV Technical Guidelines v1.0) Tj',
-    '0 -16 Td',
-    '(3. IPCC Tier 3 Wetland Biomass & Soil Organic Carbon Framework) Tj',
-    '0 -28 Td',
-    '/F1 9 Tf',
-    `(Cryptographic Anchor Hash: ${hash}) Tj`,
-    '0 -14 Td',
-    '(BLOCKCHAIN ANCHOR: SECURED VIA POLYGON AMOY LEDGER - VERIFIED) Tj',
-    'ET',
-  ];
-
-  const streamContent = textLines.join('\n');
-  const streamLength = new TextEncoder().encode(streamContent).length;
-
-  let pdf = '%PDF-1.4\n';
-  const offsets = [];
-
-  offsets[1] = pdf.length;
-  pdf += '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n';
-
-  offsets[2] = pdf.length;
-  pdf += '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n';
-
-  offsets[3] = pdf.length;
-  pdf += '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n';
-
-  offsets[4] = pdf.length;
-  pdf += `4 0 obj\n<< /Length ${streamLength} >>\nstream\n${streamContent}\nendstream\nendobj\n`;
-
-  offsets[5] = pdf.length;
-  pdf += '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n';
-
-  const xrefOffset = pdf.length;
-  pdf += 'xref\n0 6\n0000000000 65535 f \n';
-  for (let i = 1; i <= 5; i++) {
-    pdf += String(offsets[i]).padStart(10, '0') + ' 00000 n \n';
-  }
-
-  pdf += `trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
-
-  return new Blob([pdf], { type: 'application/pdf' });
+  const formatted = formatReport(report) || report;
+  return generateProfessionalPdfBlob(formatted);
 }
