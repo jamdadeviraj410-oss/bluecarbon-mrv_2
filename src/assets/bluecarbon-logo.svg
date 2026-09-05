@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%" fill="none">
+  <!-- Mangrove Leaf: Left Half (Solid Deep Ocean Blue #001e40) -->
+  <path d="M256 50 C210 110 160 170 160 236 C160 286 198 326 256 342 Z" fill="#001e40"/>
+
+  <!-- Mangrove Leaf: Right Half (Clean white interior with turquoise #00abc1 boundary) -->
+  <path d="M256 50 C302 110 352 170 352 236 C352 286 314 326 256 342" stroke="#00abc1" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="#ffffff"/>
+
+  <!-- Leaf Central Stem (Extends below the leaf) -->
+  <line x1="256" y1="216" x2="256" y2="375" stroke="#001e40" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- Left Inner Circuit Veins & Nodes (Turquoise #00abc1) -->
+  <path d="M256 265 L220 295" stroke="#00abc1" stroke-width="6" stroke-linecap="round"/>
+  
+  <line x1="228" y1="190" x2="198" y2="175" stroke="#00abc1" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="196" cy="174" r="9" fill="#00abc1"/>
+
+  <line x1="222" y1="216" x2="182" y2="216" stroke="#00abc1" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="180" cy="216" r="9" fill="#00abc1"/>
+
+  <line x1="228" y1="242" x2="198" y2="257" stroke="#00abc1" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="196" cy="258" r="9" fill="#00abc1"/>
+
+  <!-- Right Inner Circuit Veins & Nodes (Deep Blue #001e40 & Turquoise) -->
+  <!-- Circuit Track 1 -->
+  <path d="M276 195 L285 155 L285 140" stroke="#001e40" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <circle cx="285" cy="136" r="8" fill="#001e40"/>
+
+  <!-- Circuit Track 2 -->
+  <line x1="284" y1="205" x2="312" y2="180" stroke="#001e40" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="314" cy="178" r="8" fill="#001e40"/>
+
+  <!-- Circuit Track 3 -->
+  <line x1="290" y1="216" x2="328" y2="216" stroke="#001e40" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="330" cy="216" r="8" fill="#001e40"/>
+
+  <!-- Circuit Track 4 -->
+  <line x1="284" y1="227" x2="314" y2="252" stroke="#001e40" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="316" cy="254" r="8" fill="#001e40"/>
+
+  <!-- Right Lower Vein Track -->
+  <path d="M256 280 L290 295 L290 338" stroke="#00abc1" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- Center Blockchain Hexagon Structure -->
+  <!-- Outer Hexagon Border -->
+  <polygon points="256,186 282,201 282,231 256,246 230,231 230,201" stroke="#001e40" stroke-width="8" stroke-linejoin="round" fill="#ffffff"/>
+  <!-- Inner Cyan Hexagon Core -->
+  <polygon points="256,194 274,205 274,227 256,238 238,227 238,205" fill="#00abc1"/>
+
+  <!-- Typography: BlueCarbon MRV REGISTRY -->
+  <text x="256" y="432" text-anchor="middle" font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="700" font-size="52" fill="#001e40" letter-spacing="-0.02em">BlueCarbon</text>
+  <text x="256" y="470" text-anchor="middle" font-family="Inter, system-ui, -apple-system, sans-serif" font-weight="600" font-size="22" fill="#001e40" letter-spacing="0.22em">MRV REGISTRY</text>
+</svg>

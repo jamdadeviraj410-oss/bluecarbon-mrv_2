@@ -3,6 +3,8 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { ROLES, ROUTES } from '../../utils/constants';
 import { checkRegistryHealth } from '../../services/authService';
+import bluecarbonLogo from '../../assets/bluecarbon-logo.svg';
+import loginBackground from '../../assets/login-background.jpg';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -103,7 +105,7 @@ export default function Login() {
         <div className="absolute inset-0 z-0">
           <div 
             className="w-full h-full bg-cover bg-center mix-blend-overlay opacity-80" 
-            style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida/AEtjO1XF6iodfOZFgCH81TtI3mY-O5cJW2XSR1Y0JzxpThBRoDvtux3h53NfKEGEDrr2zDHYeCMLG2DFoDpV_Ze3ZyRgKwbfgnz_GrvQUXUf8urffqRqiess4yTPQpjrJngMuc02gJ6CNva6gQOUvtcfMpzt1KxXMW7eNIhr_VthVejaYxSrCAkbzJqSF0xwepMhsh3_uV0efu0idRY-QGxzBOpD54iyNSTXsQIFRbU47OuPbxSGqETfh6Amr4UZ')" }}
+            style={{ backgroundImage: `url(${loginBackground})` }}
           ></div>
           <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/50 to-transparent"></div>
           <div className="absolute inset-0 bg-gradient-to-r from-primary/80 to-transparent"></div>
@@ -134,7 +136,7 @@ export default function Login() {
         <div className="w-full max-w-[440px] mx-auto relative z-10 py-6">
           {/* Logo */}
           <div className="mb-8 text-center lg:text-left">
-            <img alt="BlueCarbon MRV Registry Logo" className="h-16 w-auto mb-6 mx-auto lg:mx-0 object-contain drop-shadow-sm" src="https://lh3.googleusercontent.com/aida/AEtjO1VW17fNGVMtPR23qYyffLAVoeuR5Kdj9tUp6MT_5V8XfzIDrHbzRM0w4PQKao_zH8sPwHYenPV-Jk0xV6OTTfahEdaecImu4vFWpKKvMTLzgxJcizYNc3V9LNKyURj8rSEiORjN6gv5kMJl4-b38UctUSP2ENOzee6PP9s7MFtDKB2fDGiOFf1-ioktRKCW2MLcv19djw8fd54LKOVv0ZW-P6PUX-kHqOjDZj3hZuhUuDgD2_B3JtzI4OU-"/>
+            <img alt="BlueCarbon MRV Registry Logo" className="h-16 w-auto mb-6 mx-auto lg:mx-0 object-contain drop-shadow-sm" src={bluecarbonLogo}/>
             <h2 className="font-headline-lg text-on-surface mb-2">Welcome back</h2>
             <p className="font-body-lg text-on-surface-variant">Sign in to access the BlueCarbon MRV Registry</p>
           </div>
