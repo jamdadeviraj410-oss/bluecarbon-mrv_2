@@ -28,19 +28,18 @@ export default function ProjectDetailPage() {
   // Sync project when route id changes or when live data loads
   useEffect(() => {
     let isMounted = true;
-    const current = getProjectById(id) || allProjects.find((p) => p.id === id);
-    if (current) {
-      setProject(current);
-    }
     fetchProjectById(id).then((data) => {
       if (isMounted && data) {
         setProject(data);
+      } else if (isMounted) {
+        const fallback = getProjectById(id) || allProjects.find((p) => p.id === id);
+        if (fallback) setProject(fallback);
       }
     });
     return () => {
       isMounted = false;
     };
-  }, [id]);
+  }, [id, allProjects]);
 
   const lat = project?.coordinates?.lat ?? project?.latitude;
   const lng = project?.coordinates?.lng ?? project?.longitude;

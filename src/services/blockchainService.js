@@ -32,7 +32,7 @@ async function extractEdgeFunctionError(error, functionName) {
     } else if (error?.context?.error) {
       detail = error.context.error;
     }
-  } catch (_) {
+  } catch {
     // fallback to original error message
   }
   return new Error(`[${functionName}] ${detail}`);

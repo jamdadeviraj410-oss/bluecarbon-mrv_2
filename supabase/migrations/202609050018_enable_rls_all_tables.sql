@@ -1,0 +1,40 @@
+-- Migration 18: Re-enable Row Level Security (RLS) across all public tables
+-- Overrides previous development override and restores fine-grained RBAC enforcement
+
+ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.blockchain_lifecycle_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.blockchain_networks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.blockchain_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.carbon_calculations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.carbon_credit_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.carbon_credits ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.community_activities ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.community_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.community_projects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.credit_retirements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.drone_surveys ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.evidence_files ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.evidence_metadata ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.evidence_validation_results ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.governance_alerts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.mrv_anomalies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.mrv_blockchain_anchors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.mrv_measurements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.mrv_submissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ocr_results ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.offline_evidence_sync_queue ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.onboarding_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.organization_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.organizations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.project_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.project_status_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.projects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sensor_readings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sensors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.smart_contracts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.verification_cases ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.verification_findings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.verification_reviews ENABLE ROW LEVEL SECURITY;

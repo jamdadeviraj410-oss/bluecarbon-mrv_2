@@ -343,7 +343,7 @@ export async function performOcrScan(imageSource, onProgress = () => {}) {
       };
     }
     // Otherwise throw error so the UI handles it cleanly and does not fabricate a fake scan
-    throw new Error(err.message || 'Failed to process document with OCR engine.');
+    throw new Error(err.message || 'Failed to process document with OCR engine.', { cause: err });
   }
 }
 

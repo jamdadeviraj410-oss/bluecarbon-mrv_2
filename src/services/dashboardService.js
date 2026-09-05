@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase.js';
 import { PROJECT_STATUS_MAP } from './projectService';
 
 /**

@@ -12,8 +12,6 @@ import {
   getBeforeAfterComparison,
   DroneMapOverlayAdapter,
   INITIAL_DRONE_SURVEYS,
-  getDroneSurveys,
-  getDroneSurveyById,
 } from '../services/droneService.js';
 import {
   getRiskLevel,

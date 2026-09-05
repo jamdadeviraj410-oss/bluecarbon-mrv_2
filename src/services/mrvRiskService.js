@@ -170,17 +170,19 @@ export async function runMrvAnomalyAudit(projectId = 'PRJ-2023-089') {
   let project = null;
   try {
     project = await getProjectById(projectId);
-  } catch (_) {
-    project = null;
+  } catch {
+    // project remains null on error
   }
-  project = project || {
-    id: projectId,
-    name: 'Maharashtra Mangrove Restoration',
-    area: 128.0,
-    estCO2e: 14200,
-    latitude: 16.9902,
-    longitude: 73.3120,
-  };
+  if (!project) {
+    project = {
+      id: projectId,
+      name: 'Maharashtra Mangrove Restoration',
+      area: 128.0,
+      estCO2e: 14200,
+      latitude: 16.9902,
+      longitude: 73.3120,
+    };
+  }
 
   const ocrResults = await getOcrResults(projectId);
   const droneSurveys = await getDroneSurveys(projectId);

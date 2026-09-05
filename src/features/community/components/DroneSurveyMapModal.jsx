@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import StatusBadge from '../../../components/common/StatusBadge';
-import Button from '../../../components/common/Button';
 
 export default function DroneSurveyMapModal({ survey, isOpen, onClose }) {
   const mapContainerRef = useRef(null);
@@ -136,6 +135,7 @@ export default function DroneSurveyMapModal({ survey, isOpen, onClose }) {
     }
 
     // Render bounded image overlay if active
+    let errorToSet = null;
     if (activeLayerMode !== 'VECTOR') {
       const imageUrl = activeLayerMode === 'ORTHO' ? survey.orthomosaic_url : survey.ndvi_map_url;
       if (imageUrl && calculatedBounds) {
@@ -147,18 +147,19 @@ export default function DroneSurveyMapModal({ survey, isOpen, onClose }) {
           imageOverlayRef.current = overlay;
         } catch (err) {
           console.warn('Could not initialize raster overlay:', err);
-          setOverlayError('Raster overlay could not be rendered over this bounding box.');
+          errorToSet = 'Raster overlay could not be rendered over this bounding box.';
         }
       } else {
-        setOverlayError(`No ${activeLayerMode === 'ORTHO' ? 'orthomosaic' : 'NDVI'} raster available for this survey.`);
+        errorToSet = `No ${activeLayerMode === 'ORTHO' ? 'orthomosaic' : 'NDVI'} raster available for this survey.`;
       }
     }
 
     const timer = setTimeout(() => {
+      setOverlayError(errorToSet);
       if (mapInstanceRef.current) {
         mapInstanceRef.current.invalidateSize();
       }
-    }, 250);
+    }, 50);
 
     return () => {
       clearTimeout(timer);

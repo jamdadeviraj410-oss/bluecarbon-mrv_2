@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase.js';
 
 /**
  * MRV & Evidence Service — Real Supabase Queries & Storage Operations

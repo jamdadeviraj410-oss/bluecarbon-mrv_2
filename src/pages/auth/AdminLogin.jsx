@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { ROLES, ROUTES } from '../../utils/constants';
 import { checkRegistryHealth, logoutUser } from '../../services/authService';
@@ -14,6 +14,7 @@ export default function AdminLogin() {
   const [nodeStatus, setNodeStatus] = useState({ checking: true, online: false });
   const { login, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     let isMounted = true;
@@ -36,6 +37,7 @@ export default function AdminLogin() {
 
     try {
       const user = await login(email, password);
+      setPassword('');
       // Strict role check: Only NCCR_ADMIN is permitted through this portal
       if (user && user.role === ROLES.NCCR_ADMIN) {
         navigate(ROUTES.ADMIN_DASHBOARD);
@@ -45,6 +47,7 @@ export default function AdminLogin() {
         setError('Access Denied: Administrator privileges required for this portal.');
       }
     } catch (err) {
+      setPassword('');
       setError(err.message || 'Invalid administrative credentials.');
     }
   };
@@ -104,7 +107,7 @@ export default function AdminLogin() {
           )}
 
           {/* Form */}
-          <form className="space-y-5" onSubmit={handleSubmit}>
+          <form key={location.key || 'admin-login-form'} className="space-y-5" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <label className="block font-label-md text-on-surface" htmlFor="admin-email">Administrator Email</label>
               <div className="relative">
@@ -116,6 +119,7 @@ export default function AdminLogin() {
                   placeholder="admin@nccr.gov.in" 
                   required 
                   type="email"
+                  autoComplete="username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
@@ -138,6 +142,7 @@ export default function AdminLogin() {
                   placeholder="••••••••" 
                   required 
                   type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />

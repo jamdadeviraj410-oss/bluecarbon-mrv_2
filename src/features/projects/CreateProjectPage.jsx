@@ -647,7 +647,7 @@ export default function CreateProjectPage() {
       try {
         const localPrj = createProject(formData);
         setSubmittedProject(localPrj);
-      } catch (fallbackErr) {
+      } catch {
         setStepError(err.message || 'Failed to submit project. Please verify inputs and try again.');
       }
     } finally {

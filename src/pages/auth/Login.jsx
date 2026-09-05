@@ -86,6 +86,7 @@ export default function Login() {
 
     try {
       const user = await login(email, password);
+      setPassword('');
       const targetFrom = location.state?.from?.pathname;
 
       if (targetFrom && isRouteAllowedForRole(targetFrom, user?.role)) {
@@ -94,6 +95,7 @@ export default function Login() {
         navigate(getRoleLandingRoute(user?.role));
       }
     } catch (err) {
+      setPassword('');
       setError(err.message || 'Invalid email or password.');
     }
   };
@@ -149,7 +151,7 @@ export default function Login() {
           )}
 
           {/* Form */}
-          <form className="space-y-5" onSubmit={handleSubmit}>
+          <form key={location.key || 'login-form'} className="space-y-5" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <label className="block font-label-md text-on-surface" htmlFor="email">Email Address</label>
               <div className="relative">
@@ -161,6 +163,7 @@ export default function Login() {
                   placeholder="name@organization.com" 
                   required 
                   type="email"
+                  autoComplete="username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
@@ -183,6 +186,7 @@ export default function Login() {
                   placeholder="••••••••" 
                   required 
                   type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />

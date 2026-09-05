@@ -238,5 +238,27 @@ export async function runAuthRbacTests() {
     assert(code.includes('viewBlockchainRoute'), 'CarbonCreditDetailPage must define role-safe viewBlockchainRoute');
   });
 
+  // 25. Login Page Clean Form Initialization & Autocomplete
+  await recordTest('Auth: Login.jsx ensures blank initial credentials and semantic autocomplete', () => {
+    const loginPath = path.resolve('src', 'pages', 'auth', 'Login.jsx');
+    const code = fs.readFileSync(loginPath, 'utf8');
+    assert(code.includes("const [email, setEmail] = useState('');"), 'Email state must initialize to empty string');
+    assert(code.includes("const [password, setPassword] = useState('');"), 'Password state must initialize to empty string');
+    assert(code.includes('autoComplete="username"'), 'Email input must specify autoComplete="username"');
+    assert(code.includes('autoComplete="current-password"'), 'Password input must specify autoComplete="current-password"');
+    assert(!code.includes('localStorage.getItem'), 'Login must not read persisted credentials from localStorage');
+    assert(!code.includes('sessionStorage.getItem'), 'Login must not read persisted credentials from sessionStorage');
+  });
+
+  // 26. AdminLogin Page Clean Form Initialization & Autocomplete
+  await recordTest('Auth: AdminLogin.jsx ensures blank initial credentials and semantic autocomplete', () => {
+    const adminLoginPath = path.resolve('src', 'pages', 'auth', 'AdminLogin.jsx');
+    const code = fs.readFileSync(adminLoginPath, 'utf8');
+    assert(code.includes("const [email, setEmail] = useState('');"), 'Admin email state must initialize to empty string');
+    assert(code.includes("const [password, setPassword] = useState('');"), 'Admin password state must initialize to empty string');
+    assert(code.includes('autoComplete="username"'), 'Admin email input must specify autoComplete="username"');
+    assert(code.includes('autoComplete="current-password"'), 'Admin password input must specify autoComplete="current-password"');
+  });
+
   return testResults;
 }

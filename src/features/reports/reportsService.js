@@ -327,6 +327,8 @@ export async function generateNewReport(options = {}) {
     creditsIssued: state === 'Maharashtra' ? '270,000' : state === 'Gujarat' ? '205,000' : '850,000',
     activeProjects: state === 'Maharashtra' ? 42 : state === 'Gujarat' ? 31 : 142,
     survivalRate: '88.0%',
+    projectType,
+    mrvStatus,
   };
 
   const keyFindings = [
@@ -336,6 +338,10 @@ export async function generateNewReport(options = {}) {
     'Zero double-counting detected across regional carbon registries.',
     'Cryptographic SHA-256 integrity hash reconciled against live blockchain anchor ledger.',
   ];
+
+  const description = (options && typeof options === 'object' && options.description)
+    ? options.description
+    : `${type} detailing field verification, carbon sequestration, and biomass analytics for ${state} (${period}).`;
 
   const newRep = {
     id: reportCode,
